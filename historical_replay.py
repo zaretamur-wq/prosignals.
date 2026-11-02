@@ -114,6 +114,8 @@ def main():
                    help="Account-currency value of a 1.0 price move per unit")
     p.add_argument("--commission-per-unit-side", type=float, default=0.0)
     p.add_argument("--slippage", type=float, default=0.0)
+    p.add_argument("--fee-rate", type=float, default=0.0,
+                   help="Per-side fraction of trade notional; 0.001 = 0.1 percent")
     args = p.parse_args()
     if args.market == "forex" and args.symbol == "BTC":
         p.error("specify --symbol for Forex/gold; values vary by broker")
@@ -127,22 +129,36 @@ def main():
     if args.market == "crypto":
         trades, equity = backtest_lifecycle(bars, decisions, args.capital,
               instrument, RiskPolicy(), expire_minutes=crypto.EXPIRE_HOURS * 60,
-              slippage_fraction=args.slippage)
+              slippage_fraction=args.slippage, fee_rate=args.fee_rate)
     else:
         trades, equity = run_backtest(bars, decisions, args.capital, instrument,
                                       RiskPolicy(), args.slippage)
     completed = [t for t in trades if t.outcome != "END_OF_TEST"]
     wins = sum(t.pnl > 0 for t in completed)
+    pnls = [t.pnl for t in completed]
+    gross_profit = sum(x for x in pnls if x > 0)
+    gross_loss = -sum(x for x in pnls if x < 0)
+    profit_factor = gross_profit / gross_loss if gross_loss > 0 else None
+    running_equity = args.capital
+    peak = running_equity
+    max_drawdown = 0.0
+    for trade in trades:
+        running_equity += trade.pnl
+        peak = max(peak, running_equity)
+        max_drawdown = max(max_drawdown, (peak - running_equity) / peak)
     result = {
         "market": args.market, "symbol": args.symbol, "candles": len(df),
         "historical_signals": len(decisions), "completed_trades": len(completed),
         "win_rate": wins / len(completed) if completed else None,
         "starting_capital": args.capital, "ending_capital": equity,
         "net_pnl": equity - args.capital,
+        "profit_factor": profit_factor,
+        "max_realized_drawdown_pct": round(100 * max_drawdown, 3),
+        "fee_rate_per_side": args.fee_rate,
         "tp1_hits": sum(getattr(t, "tp1_hit", False) for t in trades) if args.market == "crypto" else None,
         "outcomes": {key: sum(t.outcome == key for t in trades) for key in
                      ("STOP", "BREAKEVEN", "TP2", "EXPIRED", "END_OF_TEST")},
-        "warning": ("Crypto OHLCV replay omits historical derivatives, news blocks, "
+         "warning": ("Crypto OHLCV replay omits historical derivatives, news blocks, "
                     "BTC cross-asset filter and multiple simultaneous "
                     "positions. All runs require verified point-in-time data, "
                     "spread/margin and instrument specifications before conclusions.")
