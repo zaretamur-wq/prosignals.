@@ -23,20 +23,22 @@ class LifecycleTrade:
 
 def backtest_lifecycle(bars, signals, capital, spec: InstrumentSpec,
                        policy=RiskPolicy(), tp1_fraction=0.5,
-                       expire_minutes=240, slippage_fraction=0.0):
+                       expire_minutes=240, slippage_fraction=0.0, fee_rate=0.0):
     """Signals: {bar_index,side,stop,tp1,tp2}. Returns trades, equity.
 
     Assumes TP1 fills half, remainder stop moves to entry from NEXT candle.
     Stop wins ties. If TP1 and original stop both touch, stop wins. If TP1
     and TP2 touch, record TP1 only and delay TP2 until the next candle.
     Exit at expiry close, not an invented historical tick price.
-    Fees charged per entry and exit portion. No spread/margin modeled.
+    Flat commissions and optional percentage fees are charged per entry and exit portion. No spread/margin modeled.
     """
     if not isfinite(capital) or capital <= 0 or not 0 < tp1_fraction < 1:
         raise ValueError("invalid capital or TP1 fraction")
     if not isfinite(slippage_fraction) or not 0 <= slippage_fraction < 1:
         raise ValueError("invalid slippage")
     if expire_minutes <= 0: raise ValueError("invalid expiry")
+    if not isfinite(fee_rate) or not 0 <= fee_rate < 1:
+        raise ValueError("fee_rate must be a fraction between zero and one")
     indexed = {}
     for s in signals:
         idx = s["bar_index"]
@@ -93,7 +95,8 @@ def backtest_lifecycle(bars, signals, capital, spec: InstrumentSpec,
                 adverse = price*(1 - p["sign"]*slippage_fraction)
                 return ((adverse-p["entry"])*p["sign"]*p["qty"]*fraction
                         *spec.price_value_per_unit -
-                        2*p["qty"]*fraction*spec.commission_per_unit_per_side), adverse
+                        2*p["qty"]*fraction*spec.commission_per_unit_per_side -
+                        fee_rate*p["qty"]*fraction*(p["entry"]+adverse)*spec.price_value_per_unit), adverse
             event=None
             exit_px=None
             # Stops and open gaps take precedence on ambiguous candles.
@@ -134,7 +137,8 @@ def backtest_lifecycle(bars, signals, capital, spec: InstrumentSpec,
         adverse=float(last["close"])*(1-p["sign"]*slippage_fraction)
         pnl=((adverse-p["entry"])*p["sign"]*p["qty"]*fraction
              *spec.price_value_per_unit-2*p["qty"]*fraction*
-             spec.commission_per_unit_per_side)
+             spec.commission_per_unit_per_side -
+             fee_rate*p["qty"]*fraction*(p["entry"]+adverse)*spec.price_value_per_unit)
         total=p["realized"]+pnl
         equity+=total
         records.append(LifecycleTrade(p["side"],p["started"].isoformat(),
