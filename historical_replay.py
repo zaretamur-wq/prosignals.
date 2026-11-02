@@ -109,6 +109,8 @@ def main():
     p.add_argument("--csv", required=True)
     p.add_argument("--symbol", default="BTC")
     p.add_argument("--capital", type=float, default=100.0)
+    p.add_argument("--compare-score-thresholds", action="store_true",
+                   help="Exploratory in-sample comparisons, not a tuned live filter")
     p.add_argument("--report-dir", default=None,
                    help="Optional directory for audited trade CSV and diagnostic JSON")
     p.add_argument("--quantity-step", type=float, required=True)
@@ -171,6 +173,39 @@ def main():
         ledger_path, report_path = save_report(report, args.report_dir, args.symbol)
         result["diagnostics"] = report["summary"]
         result["report_files"] = [ledger_path, report_path]
+    if args.compare_score_thresholds:
+        # Reuse the SAME bars and original signal candidates. This is an
+        # in-sample diagnostic, not evidence of out-of-sample profitability.
+        comparisons = {}
+        for threshold in (None, 75, 80, 85, 90):
+            chosen = decisions if threshold is None else [
+                s for s in decisions if s.get("score") is not None
+                and float(s["score"]) >= threshold]
+            if args.market == "crypto":
+                simulated, final_equity = backtest_lifecycle(
+                    bars, chosen, args.capital, instrument, RiskPolicy(),
+                    expire_minutes=crypto.EXPIRE_HOURS * 60,
+                    slippage_fraction=args.slippage, fee_rate=args.fee_rate)
+            else:
+                simulated, final_equity = run_backtest(
+                    bars, chosen, args.capital, instrument, RiskPolicy(),
+                    args.slippage)
+            finished = [t for t in simulated if t.outcome != "END_OF_TEST"]
+            wins_pnl = sum(t.pnl for t in finished if t.pnl > 0)
+            losses_pnl = -sum(t.pnl for t in finished if t.pnl < 0)
+            comparisons["all" if threshold is None else str(threshold)] = {
+                "signals": len(chosen),
+                "completed_trades": len(finished),
+                "win_rate": (sum(t.pnl > 0 for t in finished) / len(finished)
+                             if finished else None),
+                "net_pnl": final_equity - args.capital,
+                "profit_factor": wins_pnl / losses_pnl if losses_pnl else None,
+            }
+        result["in_sample_score_comparisons"] = comparisons
+        result["comparison_warning"] = (
+            "Exploratory on the SAME historical candles. Threshold selection "
+            "from this table is overfitting until verified on untouched "
+            "forward/out-of-sample data.")
     print(json.dumps(result, indent=2))
 
 
