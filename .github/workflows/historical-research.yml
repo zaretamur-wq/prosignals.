@@ -1,0 +1,59 @@
+name: ProSignals Historical Research Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development/shared-backtesting-risk
+    paths:
+      - research_data.py
+      - historical_replay.py
+      - shared_backtest.py
+      - shared_risk.py
+      - .github/workflows/historical-research.yml
+
+permissions:
+  contents: read
+
+jobs:
+  historical-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - market: forex
+            symbol: EURUSD
+            file: EURUSD_1h.csv
+            step: "0.01"
+            min: "0.01"
+            value: "100000"
+            fee: "0"
+          - market: crypto
+            symbol: BTC
+            file: BTC_5m.csv
+            step: "0.000001"
+            min: "0.000001"
+            value: "1"
+            fee: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download market candles
+        run: python research_data.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --output "research/${{ matrix.file }}"
+      - name: Replay original signal score
+        run: |
+          python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005
+      - name: Upload research logs and market candles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-${{ matrix.symbol }}
+          path: research/
+          if-no-files-found: ignore
+          retention-days: 1
