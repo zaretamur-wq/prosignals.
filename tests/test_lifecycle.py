@@ -41,6 +41,16 @@ class LifecycleTests(unittest.TestCase):
         bars=[b(0),b(1),b(2,100,101,97,98),b(3,97,99,95,96)]
         trades,_=backtest_lifecycle(bars,signals,1000,SPEC,POLICY)
         self.assertEqual(trades[0].outcome,"TP2")
+    def test_fees_reduce_profits(self):
+        bars=[b(0),b(1),b(2,100,103,99,102),b(3,103,105,102,104)]
+        _, no_fee = backtest_lifecycle(bars,s(),1000,SPEC,POLICY)
+        _, with_fee = backtest_lifecycle(bars,s(),1000,SPEC,POLICY,fee_rate=.001)
+        self.assertLess(with_fee,no_fee)
+
+    def test_invalid_fee_is_rejected(self):
+        with self.assertRaises(ValueError):
+            backtest_lifecycle([b(0),b(1)],s(),1000,SPEC,POLICY,fee_rate=-.1)
+
     def test_daily_risk_gate(self):
         policy=RiskPolicy(risk_fraction=.01,max_daily_loss_fraction=.001,max_notional_fraction=10)
         # After first loss, second signal cannot enter within same day.
