@@ -17,6 +17,7 @@ from trade_lifecycle import backtest_lifecycle
 from shared_risk import InstrumentSpec, RiskPolicy
 from trade_diagnostics import build_report, save_report
 from research_regimes import regimes, regime_filter
+from research_holdout import compare_holdout
 
 
 def load_csv(path, crypto_mode=False):
@@ -110,6 +111,8 @@ def main():
     p.add_argument("--csv", required=True)
     p.add_argument("--symbol", default="BTC")
     p.add_argument("--capital", type=float, default=100.0)
+    p.add_argument("--holdout", action="store_true",
+                   help="Chronological 70/30 validation of fixed regime candidates")
     p.add_argument("--compare-regimes", action="store_true",
                    help="In-sample trend/volatility sensitivity; not live strategy")
     p.add_argument("--compare-score-thresholds", action="store_true",
@@ -243,6 +246,11 @@ def main():
         result["regime_warning"] = (
             "In-sample only, parameters not optimized. Cannot justify live "
             "trading without clean point-in-time out-of-sample testing.")
+    if args.holdout:
+        result["chronological_holdout"] = compare_holdout(
+            bars, decisions, args.market, instrument, args.capital,
+            slippage=args.slippage, fee_rate=args.fee_rate,
+            expire_minutes=crypto.EXPIRE_HOURS * 60)
     print(json.dumps(result, indent=2))
 
 
