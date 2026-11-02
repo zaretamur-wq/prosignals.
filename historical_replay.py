@@ -15,6 +15,7 @@ import crypto_signals as crypto
 from shared_backtest import run_backtest
 from trade_lifecycle import backtest_lifecycle
 from shared_risk import InstrumentSpec, RiskPolicy
+from trade_diagnostics import build_report, save_report
 
 
 def load_csv(path, crypto_mode=False):
@@ -108,6 +109,8 @@ def main():
     p.add_argument("--csv", required=True)
     p.add_argument("--symbol", default="BTC")
     p.add_argument("--capital", type=float, default=100.0)
+    p.add_argument("--report-dir", default=None,
+                   help="Optional directory for audited trade CSV and diagnostic JSON")
     p.add_argument("--quantity-step", type=float, required=True)
     p.add_argument("--min-quantity", type=float, required=True)
     p.add_argument("--price-value", type=float, required=True,
@@ -163,6 +166,11 @@ def main():
                     "positions. All runs require verified point-in-time data, "
                     "spread/margin and instrument specifications before conclusions.")
     }
+    if args.report_dir:
+        report = build_report(bars, decisions, trades, args.capital)
+        ledger_path, report_path = save_report(report, args.report_dir, args.symbol)
+        result["diagnostics"] = report["summary"]
+        result["report_files"] = [ledger_path, report_path]
     print(json.dumps(result, indent=2))
 
 
