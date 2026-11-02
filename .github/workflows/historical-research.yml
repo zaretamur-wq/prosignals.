@@ -10,6 +10,13 @@ on:
       - historical_replay.py
       - shared_backtest.py
       - shared_risk.py
+      - research_forex_sizing.py
+      - research_costs.py
+      - research_audit.py
+      - research_alert_gates.py
+      - research_holdout.py
+      - research_regimes.py
+      - trade_lifecycle.py
       - .github/workflows/historical-research.yml
 
 permissions:
