@@ -13,6 +13,7 @@ import pandas as pd
 import signals as forex
 import crypto_signals as crypto
 from shared_backtest import run_backtest
+from trade_lifecycle import backtest_lifecycle
 from shared_risk import InstrumentSpec, RiskPolicy
 
 
@@ -66,6 +67,7 @@ def replay(df, mode, asset="BTC"):
                 if result is None or not result.get("side"):
                     continue
                 stop, target = result["sl"], result["tp"]
+                tp1 = None
             else:
                 h1 = prefix.resample("1h", origin="epoch").agg({
                     "open": "first", "high": "max", "low": "min",
@@ -88,9 +90,12 @@ def replay(df, mode, asset="BTC"):
                 if result is None or not result.get("side"):
                     continue
                 stop, target = result["sl"], result["tp2"]
+                tp1 = result["tp1"]
             all_signals.append({"bar_index": idx, "side": result["side"],
                                 "stop": float(stop), "target": float(target),
-                                "score": result["score"]})
+                                "score": result["score"],
+                                "tp1": float(tp1) if tp1 is not None else None,
+                                "tp2": float(target)})
     finally:
         forex.get_data = old_get_data
         crypto.get_h1, crypto.derivs = old_h1, old_derivs
@@ -119,8 +124,13 @@ def main():
                                 args.commission_per_unit_side)
     bars = [{"time": t.isoformat(), **{k: float(v) for k, v in row.items()}}
             for t, row in df.iterrows()]
-    trades, equity = run_backtest(bars, decisions, args.capital, instrument,
-                                  RiskPolicy(), args.slippage)
+    if args.market == "crypto":
+        trades, equity = backtest_lifecycle(bars, decisions, args.capital,
+              instrument, RiskPolicy(), expire_minutes=crypto.EXPIRE_HOURS * 60,
+              slippage_fraction=args.slippage)
+    else:
+        trades, equity = run_backtest(bars, decisions, args.capital, instrument,
+                                      RiskPolicy(), args.slippage)
     completed = [t for t in trades if t.outcome != "END_OF_TEST"]
     wins = sum(t.pnl > 0 for t in completed)
     result = {
@@ -129,8 +139,11 @@ def main():
         "win_rate": wins / len(completed) if completed else None,
         "starting_capital": args.capital, "ending_capital": equity,
         "net_pnl": equity - args.capital,
+        "tp1_hits": sum(getattr(t, "tp1_hit", False) for t in trades) if args.market == "crypto" else None,
+        "outcomes": {key: sum(t.outcome == key for t in trades) for key in
+                     ("STOP", "BREAKEVEN", "TP2", "EXPIRED", "END_OF_TEST")},
         "warning": ("Crypto OHLCV replay omits historical derivatives, news blocks, "
-                    "TP1/breakeven, BTC cross-asset filter and multiple simultaneous "
+                    BTC cross-asset filter and multiple simultaneous "
                     "positions. All runs require verified point-in-time data, "
                     "spread/margin and instrument specifications before conclusions.")
     }
