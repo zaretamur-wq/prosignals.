@@ -51,7 +51,7 @@ def crypto_okx(symbol, count=3000):
     return frame
 
 
-def forex_yahoo(symbol, period="59d"):
+def forex_yahoo(symbol, period="180d"):
     tickers = {"EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X",
                "USDJPY": "JPY=X", "GOLD": "GC=F"}
     if symbol not in tickers:
