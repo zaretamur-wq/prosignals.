@@ -18,6 +18,7 @@ from shared_risk import InstrumentSpec, RiskPolicy
 from trade_diagnostics import build_report, save_report
 from research_regimes import regimes, regime_filter
 from research_holdout import compare_holdout
+from research_alert_gates import alert_timing_gate
 
 
 def load_csv(path, crypto_mode=False):
@@ -111,6 +112,8 @@ def main():
     p.add_argument("--csv", required=True)
     p.add_argument("--symbol", default="BTC")
     p.add_argument("--capital", type=float, default=100.0)
+    p.add_argument("--compare-alert-gates", action="store_true",
+                   help="Compare crypto cooldown/daily alert gates without live changes")
     p.add_argument("--holdout", action="store_true",
                    help="Chronological 70/30 validation of fixed regime candidates")
     p.add_argument("--compare-regimes", action="store_true",
@@ -251,6 +254,25 @@ def main():
             bars, decisions, args.market, instrument, args.capital,
             slippage=args.slippage, fee_rate=args.fee_rate,
             expire_minutes=crypto.EXPIRE_HOURS * 60)
+    if args.compare_alert_gates and args.market == "crypto":
+        gated = alert_timing_gate(bars, decisions,
+                                  cooldown_minutes=crypto.COOLDOWN_MIN,
+                                  max_daily_alerts=crypto.MAX_ALERTS_PER_DAY)
+        gated_trades, gated_equity = backtest_lifecycle(
+            bars, gated, args.capital, instrument, RiskPolicy(),
+            expire_minutes=crypto.EXPIRE_HOURS * 60,
+            slippage_fraction=args.slippage, fee_rate=args.fee_rate)
+        gated_completed = [t for t in gated_trades if t.outcome != "END_OF_TEST"]
+        result["timing_gate_comparison"] = {
+            "original_candidate_signals":len(decisions),
+            "cooldown_and_daily_cap_signals":len(gated),
+            "gated_completed_trades":len(gated_completed),
+            "gated_net_pnl":gated_equity-args.capital,
+            "gated_win_rate":(sum(t.pnl>0 for t in gated_completed) /
+                              len(gated_completed) if gated_completed else None),
+            "warning":"Approximate alert timing only; does not reconstruct news, "
+                      "open-signal state or cross-asset filters."
+        }
     print(json.dumps(result, indent=2))
 
 
