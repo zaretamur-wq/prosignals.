@@ -143,7 +143,7 @@ def main():
         "outcomes": {key: sum(t.outcome == key for t in trades) for key in
                      ("STOP", "BREAKEVEN", "TP2", "EXPIRED", "END_OF_TEST")},
         "warning": ("Crypto OHLCV replay omits historical derivatives, news blocks, "
-                    BTC cross-asset filter and multiple simultaneous "
+                    "BTC cross-asset filter and multiple simultaneous "
                     "positions. All runs require verified point-in-time data, "
                     "spread/margin and instrument specifications before conclusions.")
     }
