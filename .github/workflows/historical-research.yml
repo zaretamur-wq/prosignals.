@@ -18,7 +18,7 @@ permissions:
 jobs:
   historical-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -59,7 +59,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Download market candles
-        run: python research_data.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --output "research/${{ matrix.file }}"
+        run: python research_data.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --count 7000 --output "research/${{ matrix.file }}"
       - name: Replay original signal score
         run: |
           python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005
