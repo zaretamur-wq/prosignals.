@@ -617,7 +617,7 @@ def cycle(state, mem, manual=False):
                + "News window: clear\n"
                + ("Headlines:\n- " + "\n- ".join(hl) + "\n" if hl else "")
                + "Demo analysis only. Not financial advice. Valid about 15 min.")
-        notify(msg)
+        notify(f"{'🟢 BUY' if buy else '🔴 SELL'} {w['name']} (5m scalp)\nScore {r['score']}/100\nEntry: {fmt(e)}\nStop-loss: {fmt(sl)}\nTP1: {fmt(tp1)}\nTP2: {fmt(tp2)}\nSkip if price is already beyond {fmt(skip_beyond)}")
         state["open"].append({"name": w["name"], "side": r["side"], "time": r["time"].isoformat(),
                               "checked": r["time"].isoformat(), "entry": e, "sl": sl, "tp1": tp1,
                               "tp2": tp2, "stage": 0})
