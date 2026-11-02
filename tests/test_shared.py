@@ -12,7 +12,7 @@ class SharedFoundationTests(unittest.TestCase):
     def test_forex_position_value(self):
         q, reason = size_position(10000, 1.1, 1.099,
              InstrumentSpec("EURUSD", .01, .01, 100000),
-             RiskPolicy(risk_fraction=.01,max_notional_fraction=100))
+             RiskPolicy(risk_fraction=.01,max_notional_fraction=20))
         self.assertEqual(q,1.0)
         self.assertEqual(reason,"ok")
 
