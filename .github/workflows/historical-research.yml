@@ -30,6 +30,7 @@ jobs:
             min: "0.01"
             value: "100000"
             fee: "0"
+            fee_rate: "0"
           - market: forex
             symbol: GOLD
             file: GOLD_1h.csv
@@ -37,6 +38,7 @@ jobs:
             min: "0.01"
             value: "100"
             fee: "0"
+            fee_rate: "0"
           - market: crypto
             symbol: ETH
             file: ETH_5m.csv
@@ -44,6 +46,7 @@ jobs:
             min: "0.00001"
             value: "1"
             fee: "0"
+            fee_rate: "0.001"
           - market: crypto
             symbol: BTC
             file: BTC_5m.csv
@@ -51,6 +54,7 @@ jobs:
             min: "0.000001"
             value: "1"
             fee: "0"
+            fee_rate: "0.001"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,7 +66,7 @@ jobs:
         run: python research_data.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --count 7000 --output "research/${{ matrix.file }}"
       - name: Replay original signal score
         run: |
-          python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005
+          python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005 --fee-rate "${{ matrix.fee_rate }}"
       - name: Upload research logs and market candles
         if: always()
         uses: actions/upload-artifact@v4
