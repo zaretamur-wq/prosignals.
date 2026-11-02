@@ -16,6 +16,7 @@ from shared_backtest import run_backtest
 from trade_lifecycle import backtest_lifecycle
 from shared_risk import InstrumentSpec, RiskPolicy
 from trade_diagnostics import build_report, save_report
+from research_regimes import regimes, regime_filter
 
 
 def load_csv(path, crypto_mode=False):
@@ -109,6 +110,8 @@ def main():
     p.add_argument("--csv", required=True)
     p.add_argument("--symbol", default="BTC")
     p.add_argument("--capital", type=float, default=100.0)
+    p.add_argument("--compare-regimes", action="store_true",
+                   help="In-sample trend/volatility sensitivity; not live strategy")
     p.add_argument("--compare-score-thresholds", action="store_true",
                    help="Exploratory in-sample comparisons, not a tuned live filter")
     p.add_argument("--report-dir", default=None,
@@ -206,6 +209,40 @@ def main():
             "Exploratory on the SAME historical candles. Threshold selection "
             "from this table is overfitting until verified on untouched "
             "forward/out-of-sample data.")
+    if args.compare_regimes:
+        # Fixed, disclosed parameters. Same dataset for all three alternatives.
+        # These are exploratory comparisons, NOT out-of-sample validation.
+        historical_regimes = regimes(bars)
+        comparisons = {}
+        for mode in ("all", "trend", "trend_and_volatility"):
+            selected = regime_filter(decisions, historical_regimes, mode)
+            if args.market == "crypto":
+                sample, ending = backtest_lifecycle(
+                    bars, selected, args.capital, instrument, RiskPolicy(),
+                    expire_minutes=crypto.EXPIRE_HOURS * 60,
+                    slippage_fraction=args.slippage, fee_rate=args.fee_rate)
+            else:
+                sample, ending = run_backtest(
+                    bars, selected, args.capital, instrument, RiskPolicy(),
+                    args.slippage)
+            finished = [t for t in sample if t.outcome != "END_OF_TEST"]
+            gains = sum(t.pnl for t in finished if t.pnl > 0)
+            losses = -sum(t.pnl for t in finished if t.pnl < 0)
+            comparisons[mode] = {
+                "signals":len(selected),
+                "completed_trades":len(finished),
+                "win_rate":sum(t.pnl > 0 for t in finished)/len(finished) if finished else None,
+                "net_pnl":ending-args.capital,
+                "profit_factor":gains/losses if losses else None,
+            }
+        result["in_sample_regime_comparisons"] = comparisons
+        result["regime_definition"] = (
+            "48 completed-bar lookback, UP/DOWN if return exceeds +/-0.6%, "
+            "volatile if RMS log return >=0.2% per bar; no future candles."
+        )
+        result["regime_warning"] = (
+            "In-sample only, parameters not optimized. Cannot justify live "
+            "trading without clean point-in-time out-of-sample testing.")
     print(json.dumps(result, indent=2))
 
 
