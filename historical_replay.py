@@ -22,6 +22,7 @@ from research_alert_gates import alert_timing_gate
 from research_audit import audit_history
 from research_costs import cost_sensitivity
 from research_forex_sizing import forex_sizing_audit
+from research_forex_sizing import forex_sizing_audit
 
 
 def load_csv(path, crypto_mode=False):
@@ -183,6 +184,9 @@ def main():
                     "spread/margin and instrument specifications before conclusions.")
     }
     result["data_fidelity_audit"] = audit_history(bars, args.market)
+    if args.market == "forex":
+        result["forex_sizing_audit"] = forex_sizing_audit(
+            bars, decisions, args.capital, instrument)
     if args.report_dir:
         report = build_report(bars, decisions, trades, args.capital)
         ledger_path, report_path = save_report(report, args.report_dir, args.symbol)
