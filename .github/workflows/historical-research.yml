@@ -30,6 +30,20 @@ jobs:
             min: "0.01"
             value: "100000"
             fee: "0"
+          - market: forex
+            symbol: GOLD
+            file: GOLD_1h.csv
+            step: "0.01"
+            min: "0.01"
+            value: "100"
+            fee: "0"
+          - market: crypto
+            symbol: ETH
+            file: ETH_5m.csv
+            step: "0.00001"
+            min: "0.00001"
+            value: "1"
+            fee: "0"
           - market: crypto
             symbol: BTC
             file: BTC_5m.csv
