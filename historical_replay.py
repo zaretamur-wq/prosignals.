@@ -50,7 +50,7 @@ def replay(df, mode, asset="BTC"):
     """
     if mode not in ("forex", "crypto"):
         raise ValueError("mode must be forex or crypto")
-    minimum = 850 if mode == "forex" else 250
+    minimum = 850 if mode == "forex" else 2600
     if len(df) < minimum + 2:
         raise ValueError("not enough history for higher-timeframe indicators")
     all_signals = []
