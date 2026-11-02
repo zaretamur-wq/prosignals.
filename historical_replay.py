@@ -19,6 +19,7 @@ from trade_diagnostics import build_report, save_report
 from research_regimes import regimes, regime_filter
 from research_holdout import compare_holdout
 from research_alert_gates import alert_timing_gate
+from research_audit import audit_history
 
 
 def load_csv(path, crypto_mode=False):
@@ -177,6 +178,7 @@ def main():
                     "positions. All runs require verified point-in-time data, "
                     "spread/margin and instrument specifications before conclusions.")
     }
+    result["data_fidelity_audit"] = audit_history(bars, args.market)
     if args.report_dir:
         report = build_report(bars, decisions, trades, args.capital)
         ledger_path, report_path = save_report(report, args.report_dir, args.symbol)
