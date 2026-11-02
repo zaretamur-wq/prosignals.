@@ -21,6 +21,6 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Compile Python
-        run: python -m compileall -q shared_risk.py shared_backtest.py historical_replay.py trade_diagnostics.py trade_lifecycle.py research_regimes.py research_holdout.py research_alert_gates.py research_audit.py research_costs.py tests
+        run: python -m compileall -q shared_risk.py shared_backtest.py historical_replay.py trade_diagnostics.py trade_lifecycle.py research_regimes.py research_holdout.py research_alert_gates.py research_audit.py research_costs.py research_forex_sizing.py tests
       - name: Run paper-only unit tests
         run: python -m unittest discover -s tests -v
