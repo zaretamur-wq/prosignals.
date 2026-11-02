@@ -21,6 +21,7 @@ from research_holdout import compare_holdout
 from research_alert_gates import alert_timing_gate
 from research_audit import audit_history
 from research_costs import cost_sensitivity
+from research_forex_sizing import forex_sizing_audit
 
 
 def load_csv(path, crypto_mode=False):
@@ -259,6 +260,9 @@ def main():
             bars, decisions, args.market, instrument, args.capital,
             slippage=args.slippage, fee_rate=args.fee_rate,
             expire_minutes=crypto.EXPIRE_HOURS * 60)
+    if args.market == "forex":
+        result["forex_position_sizing_audit"] = forex_sizing_audit(
+            bars, decisions, args.capital, instrument)
     if args.cost_stress and args.market == "crypto":
         result["cost_sensitivity"] = cost_sensitivity(
             bars, decisions, args.capital, instrument,
