@@ -1,0 +1,49 @@
+name: ProSignals Long History Collection
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - development/shared-backtesting-risk
+    paths:
+      - research_long_history.py
+      - research_import.py
+      - .github/workflows/long-history.yml
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - market: crypto
+            symbol: BTC
+          - market: crypto
+            symbol: ETH
+          - market: forex
+            symbol: EURUSD
+          - market: forex
+            symbol: GBPUSD
+          - market: forex
+            symbol: USDJPY
+          - market: forex
+            symbol: GOLD
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Download extended real market history
+        run: python research_long_history.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --count 50000 --output "history/${{ matrix.symbol }}.csv"
+      - name: Save dataset and provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: history-${{ matrix.symbol }}
+          path: history/
+          if-no-files-found: ignore
+          retention-days: 7
