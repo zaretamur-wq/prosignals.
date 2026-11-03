@@ -264,7 +264,7 @@ def main():
         # These are exploratory comparisons, NOT out-of-sample validation.
         historical_regimes = regimes(bars)
         comparisons = {}
-        for mode in ("all", "trend", "trend_and_volatility"):
+        for mode in ("all", "trend", "trend_and_volatility", "range_only", "countertrend"):
             selected = regime_filter(decisions, historical_regimes, mode)
             if args.market == "crypto":
                 sample, ending = backtest_lifecycle(
