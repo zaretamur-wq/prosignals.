@@ -31,7 +31,7 @@ def regimes(bars, lookback=48, trend_threshold=0.006, volatility_floor=0.002):
     return out
 
 def regime_filter(signals, regimes_by_bar, mode):
-    if mode not in ("all","trend","trend_and_volatility","range_only"):
+    if mode not in ("all","trend","trend_and_volatility","range_only","countertrend"):
         raise ValueError("unsupported regime mode")
     if mode == "all":
         return list(signals)
@@ -39,6 +39,10 @@ def regime_filter(signals, regimes_by_bar, mode):
     for s in signals:
         r=regimes_by_bar[s["bar_index"]]
         if r is None:
+            continue
+        if mode == "countertrend":
+            if (s["side"]=="BUY" and r["trend"]=="DOWN") or (s["side"]=="SELL" and r["trend"]=="UP"):
+                chosen.append(s)
             continue
         if mode == "range_only":
             if r["trend"] == "RANGE":
