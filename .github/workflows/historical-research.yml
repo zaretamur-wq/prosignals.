@@ -19,6 +19,7 @@ on:
       - research_alert_gates.py
       - research_holdout.py
       - research_regimes.py
+      - research_holdout.py
       - trade_lifecycle.py
       - .github/workflows/historical-research.yml
 
