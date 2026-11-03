@@ -19,6 +19,7 @@ on:
       - research_alert_gates.py
       - research_holdout.py
       - research_regimes.py
+      - research_entry_candidates.py
       - research_holdout.py
       - trade_lifecycle.py
       - .github/workflows/historical-research.yml
@@ -94,6 +95,10 @@ jobs:
       - name: Replay original signal score
         run: |
           python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005 --fee-rate "${{ matrix.fee_rate }}" --report-dir "reports/${{ matrix.symbol }}" --compare-score-thresholds --compare-regimes --holdout --compare-alert-gates --cost-stress
+      - name: Compare independent entry models on crypto
+        if: matrix.market == 'crypto'
+        run: |
+          python research_entry_comparison.py --csv "research/${{ matrix.file }}" --symbol "${{ matrix.symbol }}" --output "reports/${{ matrix.symbol }}/entry_comparison.json"
       - name: Hypothetical smaller Forex contract experiment
         if: matrix.symbol == 'EURUSD' || matrix.symbol == 'GBPUSD'
         run: |
