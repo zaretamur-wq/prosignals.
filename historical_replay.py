@@ -24,6 +24,7 @@ from research_costs import cost_sensitivity
 from research_forex_sizing import forex_sizing_audit
 from research_margin import compare_margin_scenarios
 from research_coverage import coverage_report, wilson_win_rate_interval
+from research_acceptance import assess_trades
 
 
 def load_csv(path, crypto_mode=False):
@@ -187,6 +188,18 @@ def main():
     result["data_fidelity_audit"] = audit_history(bars, args.market)
     result["historical_coverage"] = coverage_report(bars, args.market)
     result["win_rate_uncertainty"] = wilson_win_rate_interval(wins, len(completed))
+    simulated_equity = float(args.capital)
+    completed_returns = []
+    for trade in trades:
+        if trade.outcome == "END_OF_TEST":
+            continue
+        if simulated_equity <= 0:
+            break
+        completed_returns.append(trade.pnl / simulated_equity)
+        simulated_equity += trade.pnl
+    result["in_sample_acceptance_diagnostic"] = assess_trades(completed_returns)
+    result["in_sample_acceptance_diagnostic"]["research_gate_passed"] = False
+    result["in_sample_acceptance_diagnostic"]["warning"] = "IN-SAMPLE ONLY: this diagnostic cannot pass the out-of-sample acceptance gate."
     if args.market == "forex":
         result["forex_sizing_audit"] = forex_sizing_audit(
             bars, decisions, args.capital, instrument)
