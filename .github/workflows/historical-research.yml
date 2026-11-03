@@ -20,6 +20,7 @@ on:
       - research_holdout.py
       - research_regimes.py
       - research_entry_candidates.py
+      - research_entry_comparison.py
       - research_holdout.py
       - trade_lifecycle.py
       - .github/workflows/historical-research.yml
