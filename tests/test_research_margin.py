@@ -1,5 +1,5 @@
 import unittest
-from research_margin import MarginScenario, margin_position_size
+from research_margin import MarginScenario, margin_position_size, compare_margin_scenarios
 from shared_risk import InstrumentSpec, RiskPolicy
 
 class MarginResearchTests(unittest.TestCase):
@@ -25,6 +25,17 @@ class MarginResearchTests(unittest.TestCase):
         b=margin_position_size(1000,1.1,1.0995,self.fx,
                                MarginScenario(leverage=100,spread_price=.0002))[0]
         self.assertLessEqual(b,a)
+
+    def test_scenario_comparison_counts_candidates(self):
+        bars=[{"open":1.1},{"open":1.1}]
+        signals=[{"bar_index":0,"stop":1.0995}]
+        result=compare_margin_scenarios(bars,signals,1000,self.fx)
+        self.assertEqual(set(result["hypothetical_leverage_scenarios"]),
+                         {"1","10","30","100"})
+        for item in result["hypothetical_leverage_scenarios"].values():
+            self.assertEqual(item["candidate_signals"],1)
+            self.assertEqual(item["sizing_eligible_signals"]+
+                             sum(item["rejection_reasons"].values()),1)
 
     def test_invalid_leverage_rejected(self):
         qty,reason,_=margin_position_size(
