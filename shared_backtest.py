@@ -20,7 +20,7 @@ class Trade:
     outcome: str
 
 def run_backtest(bars, signals, initial_equity, spec: InstrumentSpec,
-                 policy=RiskPolicy(), slippage_fraction=0.0):
+                 policy=RiskPolicy(), slippage_fraction=0.0, position_sizer=None):
     """Return (trades, final_equity); only one position at a time.
 
     bars: list of {time, open, high, low, close}
@@ -39,6 +39,7 @@ def run_backtest(bars, signals, initial_equity, spec: InstrumentSpec,
         if idx in by_index:
             raise ValueError("multiple signals for one bar not supported")
         by_index[idx] = s
+    sizing = position_sizer if position_sizer is not None else size_position
     equity, position, pending, trades = float(initial_equity), None, None, []
     day, daily_pnl = None, 0.0
     for i, b in enumerate(bars):
@@ -60,7 +61,7 @@ def run_backtest(bars, signals, initial_equity, spec: InstrumentSpec,
             if not all(isfinite(v) and v>0 for v in (stop,target)):
                 raise ValueError("invalid exit levels")
             if (buy and stop < entry < target) or (not buy and target < entry < stop):
-                qty, _ = size_position(equity, entry, stop, spec, policy,
+                qty, _ = sizing(equity, entry, stop, spec, policy,
                                        realized_daily_pnl=daily_pnl)
                 if qty > 0:
                     position = dict(side=s["side"], entry=entry, stop=stop,
