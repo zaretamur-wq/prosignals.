@@ -13,6 +13,7 @@ on:
       - research_forex_sizing.py
       - research_margin.py
       - research_coverage.py
+      - research_import.py
       - research_costs.py
       - research_audit.py
       - research_alert_gates.py
