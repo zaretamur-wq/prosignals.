@@ -111,3 +111,5 @@ jobs:
             reports/
           if-no-files-found: ignore
           retention-days: 1
+
+# Countertrend candidate added to offline holdout research.
