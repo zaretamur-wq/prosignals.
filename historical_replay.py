@@ -22,7 +22,7 @@ from research_alert_gates import alert_timing_gate
 from research_audit import audit_history
 from research_costs import cost_sensitivity
 from research_forex_sizing import forex_sizing_audit
-from research_forex_sizing import forex_sizing_audit
+from research_margin import compare_margin_scenarios
 
 
 def load_csv(path, crypto_mode=False):
@@ -187,6 +187,8 @@ def main():
     if args.market == "forex":
         result["forex_sizing_audit"] = forex_sizing_audit(
             bars, decisions, args.capital, instrument)
+        result["hypothetical_margin_screen"] = compare_margin_scenarios(
+            bars, decisions, args.capital, instrument)
     if args.report_dir:
         report = build_report(bars, decisions, trades, args.capital)
         ledger_path, report_path = save_report(report, args.report_dir, args.symbol)
@@ -264,9 +266,6 @@ def main():
             bars, decisions, args.market, instrument, args.capital,
             slippage=args.slippage, fee_rate=args.fee_rate,
             expire_minutes=crypto.EXPIRE_HOURS * 60)
-    if args.market == "forex":
-        result["forex_position_sizing_audit"] = forex_sizing_audit(
-            bars, decisions, args.capital, instrument)
     if args.cost_stress and args.market == "crypto":
         result["cost_sensitivity"] = cost_sensitivity(
             bars, decisions, args.capital, instrument,
