@@ -22,7 +22,8 @@ from research_alert_gates import alert_timing_gate
 from research_audit import audit_history
 from research_costs import cost_sensitivity
 from research_forex_sizing import forex_sizing_audit
-from research_margin import compare_margin_scenarios
+from research_margin import compare_margin_scenarios, MarginScenario
+from research_margin_backtest import backtest_margin_scenario
 from research_coverage import coverage_report, wilson_win_rate_interval
 from research_acceptance import assess_trades
 
@@ -205,6 +206,11 @@ def main():
             bars, decisions, args.capital, instrument)
         result["hypothetical_margin_screen"] = compare_margin_scenarios(
             bars, decisions, args.capital, instrument)
+        result["hypothetical_margin_backtests_zero_spread"] = {
+            str(lev): backtest_margin_scenario(
+                bars, decisions, args.capital, instrument, MarginScenario(lev))
+            for lev in (1, 10, 30, 100)
+        }
     # Explicitly distinguish no executable positions from losing positions.
     if not completed:
         result["decision_status"] = "NO_EXECUTABLE_COMPLETED_TRADES"
