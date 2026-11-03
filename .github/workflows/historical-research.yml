@@ -10,6 +10,8 @@ on:
       - historical_replay.py
       - shared_backtest.py
       - shared_risk.py
+      - research_margin_backtest.py
+      - research_margin.py
       - research_forex_sizing.py
       - research_margin.py
       - research_coverage.py
