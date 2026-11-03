@@ -25,7 +25,7 @@ def compare_holdout(bars, signals, market, instrument, capital,
               "holdout_bars":len(bars)-split,"train":{},"holdout":{}}
     for part,start,end in (("train",0,split),("holdout",split,len(bars))):
         sample_bars=bars[start:end]
-        for mode in ("all","trend","trend_and_volatility"):
+        for mode in ("all","trend","trend_and_volatility","range_only"):
             selected=regime_filter(signals,regime_data,mode)
             selected=[{**s,"bar_index":s["bar_index"]-start}
                       for s in selected if start<=s["bar_index"]<end-1]
