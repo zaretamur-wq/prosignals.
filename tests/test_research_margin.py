@@ -11,6 +11,7 @@ class MarginResearchTests(unittest.TestCase):
             100,1.1,1.095,self.fx,MarginScenario(leverage=100))
         self.assertEqual(qty,0)
         self.assertGreater(diag["minimum_lot_stop_risk"],diag["risk_budget"])
+        self.assertEqual(reason,"minimum lot exceeds stop-risk budget")
 
     def test_scenario_can_allow_minimum_lot_without_changing_risk_limit(self):
         qty,reason,diag=margin_position_size(
