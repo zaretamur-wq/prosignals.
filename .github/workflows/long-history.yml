@@ -6,6 +6,7 @@ on:
       - development/shared-backtesting-risk
     paths:
       - research_long_history.py
+      - research_long_regimes.py
       - research_import.py
       - .github/workflows/long-history.yml
 permissions:
@@ -39,6 +40,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Download extended real market history
         run: python research_long_history.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --count 50000 --output "history/${{ matrix.symbol }}.csv"
+      - name: Analyze long-history market regimes
+        run: python research_long_regimes.py --csv "history/${{ matrix.symbol }}.csv" --output "history/${{ matrix.symbol }}_regimes.json" --lookback 60 --horizon 5
       - name: Save dataset and provenance
         if: always()
         uses: actions/upload-artifact@v4
