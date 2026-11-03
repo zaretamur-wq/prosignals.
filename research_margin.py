@@ -60,7 +60,13 @@ def margin_position_size(equity, entry, stop, spec: InstrumentSpec,
                  "margin_limited_qty":round(margin_qty,12),
                  "notional_policy_limited_qty":round(notional_qty,12)}
     if qty+1e-12<spec.min_quantity:
-        return 0.0,"minimum lot exceeds risk or margin cap",diagnostics
+        if risk_qty+1e-12<spec.min_quantity:
+            reason="minimum lot exceeds stop-risk budget"
+        elif margin_qty+1e-12<spec.min_quantity:
+            reason="minimum lot exceeds margin budget"
+        else:
+            reason="minimum lot exceeds leveraged notional policy cap"
+        return 0.0,reason,diagnostics
     return qty,"research-only eligible",diagnostics
 
 def compare_margin_scenarios(bars, signals, capital, spec, leverages=(1,10,30,100),
