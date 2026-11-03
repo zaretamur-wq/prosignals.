@@ -205,6 +205,22 @@ def main():
             bars, decisions, args.capital, instrument)
         result["hypothetical_margin_screen"] = compare_margin_scenarios(
             bars, decisions, args.capital, instrument)
+    # Explicitly distinguish no executable positions from losing positions.
+    if not completed:
+        result["decision_status"] = "NO_EXECUTABLE_COMPLETED_TRADES"
+        result["decision_reason"] = (
+            "No completed trades under specified capital, order-size and risk rules; "
+            "a zero P&L is not evidence of strategy profitability."
+        )
+    elif equity < args.capital:
+        result["decision_status"] = "LOSING_SIMULATION"
+        result["decision_reason"] = "Simulated account lost money after modeled costs."
+    else:
+        result["decision_status"] = "UNVALIDATED_NONNEGATIVE_SIMULATION"
+        result["decision_reason"] = (
+            "Nonnegative simulation alone is insufficient; requires independent "
+            "out-of-sample and realistic execution validation."
+        )
     if args.report_dir:
         report = build_report(bars, decisions, trades, args.capital)
         ledger_path, report_path = save_report(report, args.report_dir, args.symbol)
