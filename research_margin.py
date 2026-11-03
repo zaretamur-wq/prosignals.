@@ -62,3 +62,39 @@ def margin_position_size(equity, entry, stop, spec: InstrumentSpec,
     if qty+1e-12<spec.min_quantity:
         return 0.0,"minimum lot exceeds risk or margin cap",diagnostics
     return qty,"research-only eligible",diagnostics
+
+def compare_margin_scenarios(bars, signals, capital, spec, leverages=(1,10,30,100),
+                             spread_price=0.0, slippage_price=0.0):
+    """Screen original signal entries under disclosed hypothetical leverage.
+
+    Fixed starting equity per candidate; ignores concurrent positions, price
+    path and margin calls. NOT a profit backtest or broker recommendation.
+    """
+    scenarios={}
+    for leverage in leverages:
+        scenario=MarginScenario(leverage=leverage,spread_price=spread_price,
+                                slippage_price=slippage_price)
+        eligible=0
+        rejected={}
+        for signal in signals:
+            i=signal["bar_index"]
+            if not 0<=i<len(bars)-1:
+                raise ValueError("invalid signal index")
+            qty,reason,_=margin_position_size(
+                capital,float(bars[i+1]["open"]),float(signal["stop"]),
+                spec,scenario)
+            if qty>0:
+                eligible+=1
+            else:
+                rejected[reason]=rejected.get(reason,0)+1
+        scenarios[str(leverage)]={
+            "candidate_signals":len(signals),
+            "sizing_eligible_signals":eligible,
+            "rejection_reasons":rejected}
+    return {"hypothetical_leverage_scenarios":scenarios,
+            "spread_price":spread_price,"slippage_price":slippage_price,
+            "warning":"Research-only fixed-equity eligibility screening; "
+                      "not simulated trades, profitability, broker eligibility "
+                      "or live readiness. Leverage can magnify losses and "
+                      "margin calls. Account currency conversion, swaps, "
+                      "broker margin rules and actual spread remain unverified."}
