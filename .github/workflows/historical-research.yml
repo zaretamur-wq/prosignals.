@@ -95,11 +95,11 @@ jobs:
         run: |
           python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005 --fee-rate "${{ matrix.fee_rate }}" --report-dir "reports/${{ matrix.symbol }}" --compare-score-thresholds --compare-regimes --holdout --compare-alert-gates --cost-stress
       - name: Hypothetical smaller Forex contract experiment
-        if: matrix.market == 'forex'
+        if: matrix.symbol == 'EURUSD' || matrix.symbol == 'GBPUSD'
         run: |
           # Independent hypothetical unit contract, NOT a claim about broker lot sizes.
-          # EURUSD/GBPUSD: 1 unit of base currency; USDJPY requires FX conversion,
-          # so its results cannot be interpreted as USD P&L.
+          # EURUSD/GBPUSD: hypothetical 1 unit of base currency. USDJPY needs
+          # quote-to-USD conversion and gold needs broker contract specifications.
           python historical_replay.py --market forex --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step 1 --min-quantity 1 --price-value 1 --slippage 0.0005 > "reports/${{ matrix.symbol }}/unit_contract_experiment.json"
       - name: Upload research logs and market candles
         if: always()
