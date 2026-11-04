@@ -11,10 +11,10 @@ import numpy as np
 
 PIP = {"EURUSD": 0.0001, "GBPUSD": 0.0001, "USDJPY": 0.01, "XAUUSD": 0.01}
 PIP_VALUE_PER_LOT = {"EURUSD": 10.0, "GBPUSD": 10.0}  # USD account, approximate
-def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.005,
+def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
              spread_pips=1.5, slippage_pips=0.2, min_lot=0.01):
-    if not (initial > 0 and 0 < risk_pct <= 0.02 and min_lot > 0 and slippage_pips >= 0 and spread_pips >= 0):
-        raise ValueError("Invalid initial balance, risk (0-2%), lot step, spread or slippage")
+    if not (initial > 0 and 0 < risk_pct <= 0.03 and min_lot > 0 and slippage_pips >= 0 and spread_pips >= 0):
+        raise ValueError("Invalid initial balance, risk (0-3%), lot step, spread or slippage")
     if symbol not in PIP_VALUE_PER_LOT:
         raise ValueError("Only EURUSD and GBPUSD supported until symbol-specific pip value is verified")
     required = {"time", "open", "high", "low", "close"}
@@ -103,7 +103,7 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.005,
             "trades":len(trades),"win_rate_pct":round(100*wins/len(trades),2) if trades else None,
             "max_drawdown_pct":round(100*max_dd,2),"risk_pct_per_trade":risk_pct*100,
             "assumptions":"mid-price OHLC; spread both sides; slippage entry/exit; stop-first ambiguity; no commissions, swaps, or margin modeling",
-            "skipped_small_account_warning": "At $100, 0.01-lot minimum may prevent any trades at 0.5% risk.",
+            "skipped_small_account_warning": "At $100, 0.01-lot minimum may still prevent trades at 3% risk.",
             "trade_log":trades}
 
 if __name__ == "__main__":
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     p.add_argument("csv")
     p.add_argument("--symbol",choices=list(PIP_VALUE_PER_LOT),default="EURUSD")
     p.add_argument("--spread-pips",type=float,default=1.5)
-    p.add_argument("--risk-pct",type=float,default=0.005)
+    p.add_argument("--risk-pct",type=float,default=0.03)
     args=p.parse_args()
     result=backtest(pd.read_csv(args.csv),symbol=args.symbol,
                     spread_pips=args.spread_pips,risk_pct=args.risk_pct)
