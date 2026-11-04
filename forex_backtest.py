@@ -30,8 +30,10 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
         raise ValueError("Need >=220 chronological candles")
     for c in ["open", "high", "low", "close"]:
         d[c] = pd.to_numeric(d[c], errors="raise")
-    if d[["open", "high", "low", "close"]].isna().any().any():
-        raise ValueError("Missing OHLC values")
+    if not np.isfinite(d[["open", "high", "low", "close"]].to_numpy(dtype=float)).all():
+        raise ValueError("Missing or nonfinite OHLC values")
+    if (d[["open", "high", "low", "close"]] <= 0).any().any():
+        raise ValueError("OHLC prices must be positive")
     if ((d["high"] < d[["open", "close", "low"]].max(axis=1)) |
         (d["low"] > d[["open", "close", "high"]].min(axis=1))).any():
         raise ValueError("Invalid OHLC")
