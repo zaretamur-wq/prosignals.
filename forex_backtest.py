@@ -8,11 +8,13 @@ import argparse
 import json
 import pandas as pd
 import numpy as np
+from forex_daily_risk import DailyRiskGuard
 
 PIP = {"EURUSD": 0.0001, "GBPUSD": 0.0001, "USDJPY": 0.01, "XAUUSD": 0.01}
 PIP_VALUE_PER_LOT = {"EURUSD": 10.0, "GBPUSD": 10.0}  # USD account, approximate
 def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
-             spread_pips=1.5, slippage_pips=0.2, min_lot=0.01):
+             spread_pips=1.5, slippage_pips=0.2, min_lot=0.01,
+             daily_profit_target=15.0, daily_loss_limit=6.0):
     if not (initial > 0 and 0 < risk_pct <= 0.03 and min_lot > 0 and slippage_pips >= 0 and spread_pips >= 0):
         raise ValueError("Invalid initial balance, risk (0-3%), lot step, spread or slippage")
     if symbol not in PIP_VALUE_PER_LOT:
@@ -40,8 +42,12 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
                     (d.low-close.shift()).abs()], axis=1).max(axis=1)
     atr = tr.ewm(alpha=1/14, adjust=False).mean()
     cash, peak, max_dd, trades = initial, initial, 0.0, []
+    daily_guard = DailyRiskGuard(daily_profit_target, daily_loss_limit)
     i = 201
     while i < len(d)-1:
+        if not daily_guard.can_open(d.time.iloc[i+1]):
+            i += 1
+            continue
         # Signal uses only COMPLETED candle i; entry occurs next candle.
         buy = ema20.iloc[i] > ema50.iloc[i] and close.iloc[i-1] <= ema20.iloc[i-1] and close.iloc[i] > ema20.iloc[i]
         sell = ema20.iloc[i] < ema50.iloc[i] and close.iloc[i-1] >= ema20.iloc[i-1] and close.iloc[i] < ema20.iloc[i]
@@ -90,6 +96,7 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
             break  # Do not score an unclosed trade as a win.
         pnl = direction*(exit_price-entry)/pip*PIP_VALUE_PER_LOT[symbol]*lots
         cash += pnl
+        daily_guard.record_exit(d.time.iloc[j], pnl)
         peak = max(peak, cash)
         max_dd = max(max_dd, (peak-cash)/peak)
         trades.append({"entry_time":str(d.time.iloc[i+1]),"exit_time":str(d.time.iloc[j]),
@@ -104,6 +111,10 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
             "max_drawdown_pct":round(100*max_dd,2),"risk_pct_per_trade":risk_pct*100,
             "assumptions":"mid-price OHLC; spread both sides; slippage entry/exit; stop-first ambiguity; no commissions, swaps, or margin modeling",
             "skipped_small_account_warning": "At $100, 0.01-lot minimum may still prevent trades at 3% risk.",
+            "daily_realized_pnl_usd":daily_guard.summary(),
+            "daily_profit_target_usd":daily_profit_target,
+            "daily_loss_limit_usd":daily_loss_limit,
+            "daily_limit_note":"Entry gating on UTC realized P&L; overnight positions and gaps can exceed limits.",
             "trade_log":trades}
 
 if __name__ == "__main__":
@@ -112,7 +123,11 @@ if __name__ == "__main__":
     p.add_argument("--symbol",choices=list(PIP_VALUE_PER_LOT),default="EURUSD")
     p.add_argument("--spread-pips",type=float,default=1.5)
     p.add_argument("--risk-pct",type=float,default=0.03)
+    p.add_argument("--daily-profit-target",type=float,default=15.0)
+    p.add_argument("--daily-loss-limit",type=float,default=6.0)
     args=p.parse_args()
     result=backtest(pd.read_csv(args.csv),symbol=args.symbol,
-                    spread_pips=args.spread_pips,risk_pct=args.risk_pct)
+                    spread_pips=args.spread_pips,risk_pct=args.risk_pct,
+                    daily_profit_target=args.daily_profit_target,
+                    daily_loss_limit=args.daily_loss_limit)
     print(json.dumps(result,indent=2))
