@@ -13,6 +13,8 @@ PIP = {"EURUSD": 0.0001, "GBPUSD": 0.0001, "USDJPY": 0.01, "XAUUSD": 0.01}
 PIP_VALUE_PER_LOT = {"EURUSD": 10.0, "GBPUSD": 10.0}  # USD account, approximate
 def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.005,
              spread_pips=1.5, slippage_pips=0.2, min_lot=0.01):
+    if not (initial > 0 and 0 < risk_pct <= 0.02 and min_lot > 0 and slippage_pips >= 0 and spread_pips >= 0):
+        raise ValueError("Invalid initial balance, risk (0-2%), lot step, spread or slippage")
     if symbol not in PIP_VALUE_PER_LOT:
         raise ValueError("Only EURUSD and GBPUSD supported until symbol-specific pip value is verified")
     required = {"time", "open", "high", "low", "close"}
@@ -20,11 +22,13 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.005,
         raise ValueError(f"Missing columns: {required-set(df.columns)}")
     d = df.copy()
     d["time"] = pd.to_datetime(d["time"], utc=True)
-    d = d.sort_values("time").drop_duplicates("time")
+    d = d.sort_values("time").drop_duplicates("time").reset_index(drop=True)
     if len(d) < 220:
         raise ValueError("Need >=220 chronological candles")
     for c in ["open", "high", "low", "close"]:
         d[c] = pd.to_numeric(d[c], errors="raise")
+    if d[["open", "high", "low", "close"]].isna().any().any():
+        raise ValueError("Missing OHLC values")
     if ((d["high"] < d[["open", "close", "low"]].max(axis=1)) |
         (d["low"] > d[["open", "close", "high"]].min(axis=1))).any():
         raise ValueError("Invalid OHLC")
@@ -54,7 +58,9 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.005,
         sl = entry-direction*distance
         tp = entry+direction*2*distance
         risk_per_lot = distance/pip*PIP_VALUE_PER_LOT[symbol]
-        lots = np.floor((cash*risk_pct/risk_per_lot)/min_lot)*min_lot
+        # Include exit slippage and a gap allowance in planned risk budget.
+        budget_per_lot = risk_per_lot + slippage_pips*PIP_VALUE_PER_LOT[symbol]
+        lots = round(np.floor((cash*risk_pct/budget_per_lot)/min_lot + 1e-10)*min_lot, 8)
         if lots < min_lot:
             i += 1
             continue
@@ -97,6 +103,7 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.005,
             "trades":len(trades),"win_rate_pct":round(100*wins/len(trades),2) if trades else None,
             "max_drawdown_pct":round(100*max_dd,2),"risk_pct_per_trade":risk_pct*100,
             "assumptions":"mid-price OHLC; spread both sides; slippage entry/exit; stop-first ambiguity; no commissions, swaps, or margin modeling",
+            "skipped_small_account_warning": "At $100, 0.01-lot minimum may prevent any trades at 0.5% risk.",
             "trade_log":trades}
 
 if __name__ == "__main__":
