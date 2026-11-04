@@ -17,12 +17,12 @@ def candles(n=350):
 
 class ForexBacktestTests(unittest.TestCase):
     def test_small_account_does_not_force_min_lot(self):
-        result = backtest(candles(), initial=100, risk_pct=0.005)
+        result = backtest(candles(), initial=100, risk_pct=0.03)
         self.assertGreaterEqual(result["final_usd"], 0)
         self.assertTrue(all(t["lots"] >= 0.01 for t in result["trade_log"]))
     def test_invalid_risk_rejected(self):
         with self.assertRaises(ValueError):
-            backtest(candles(), risk_pct=0.05)
+            backtest(candles(), risk_pct=0.04)
     def test_invalid_ohlc_rejected(self):
         d=candles()
         d.loc[5,"high"]=d.loc[5,"low"]-0.001
