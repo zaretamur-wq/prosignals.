@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import numpy as np
 from forex_daily_risk import DailyRiskGuard
+from forex_portfolio_risk import size_position
 
 PIP = {"EURUSD": 0.0001, "GBPUSD": 0.0001, "USDJPY": 0.01, "XAUUSD": 0.01}
 PIP_VALUE_PER_LOT = {"EURUSD": 10.0, "GBPUSD": 10.0}  # USD account, approximate
@@ -66,7 +67,9 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
         risk_per_lot = distance/pip*PIP_VALUE_PER_LOT[symbol]
         # Include exit slippage and a gap allowance in planned risk budget.
         budget_per_lot = risk_per_lot + slippage_pips*PIP_VALUE_PER_LOT[symbol]
-        lots = round(np.floor((cash*risk_pct/budget_per_lot)/min_lot + 1e-10)*min_lot, 8)
+        lots = size_position(cash, distance/pip, PIP_VALUE_PER_LOT[symbol],
+                             risk_fraction=risk_pct, lot_step=min_lot, min_lot=min_lot,
+                             extra_cost_usd_per_lot=slippage_pips*PIP_VALUE_PER_LOT[symbol])
         if lots < min_lot:
             i += 1
             continue
