@@ -35,3 +35,13 @@ The current backtester does not model broker margin, commissions or swaps.
 A $100 account with 0.5% risk and 0.01 minimum lot may have zero valid
 trades; **never force a minimum lot above the risk budget**.
 A 75% win rate is a research goal, not a performance claim.
+
+## Updated research targets (2026-11-04)
+- Starting equity: USD 100.
+- Per-trade planned risk: **3% of current equity maximum** (aggressive).
+- Baseline target: **2R**. Three $3-risk wins imply about $18 gross at fixed initial equity, before costs.
+- Daily profit objective: **$15-$20, aspirational only**, not a guaranteed income or trade quota.
+- Proposed daily stop: **6% loss** and stop on reaching the profit objective; **NOT YET IMPLEMENTED IN BACKTESTER**.
+- Actual fill losses can exceed planned risk due to gaps/slippage.
+- Do not force trades when broker minimum lot exceeds risk budget.
+- The backtester presently runs continuously over the CSV and does not enforce daily profit/loss halts; implement and test before calling this a complete risk engine.
