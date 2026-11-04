@@ -18,8 +18,8 @@ def evaluate(source, symbol, spread_pips=1.5, slippage_pips=0.2,
     raw=path.read_bytes()
     frame=pd.read_csv(path)
     quality=audit_candles(frame,expected_minutes=5)
-    if len(frame)<1500:
-        raise ValueError("At least 1500 M5 candles required for meaningful partition warmup")
+    if len(frame)<3000:
+        raise ValueError("At least 3000 M5 candles required for meaningful partition warmup")
     # Market closures are flagged, never filled. A report is still allowed,
     # but must not be labeled clean when gaps are present.
     train,validation,test=chronological_splits(frame,embargo=embargo)
