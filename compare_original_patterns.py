@@ -69,6 +69,10 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
     sweep_ny=[s for s in m5_sweep if 12<=timestamps.iloc[s["bar_index"]].hour<21]
     sweep_vol=[s for s in m5_sweep if pd.notna(atr_baseline.iloc[s["bar_index"]]) and atr.iloc[s["bar_index"]]>=atr_baseline.iloc[s["bar_index"]]]
     sweep_london_vol=[s for s in sweep_london if pd.notna(atr_baseline.iloc[s["bar_index"]]) and atr.iloc[s["bar_index"]]>=atr_baseline.iloc[s["bar_index"]]]
+    # Robustness checks: use the same fixed NY-session rule without selecting on holdout.
+    # Restrict signals to the first and second half of the holdout independently.
+    ny_holdout_first=[s for s in sweep_ny if split<=s["bar_index"]<split+(len(df)-split)//2]
+    ny_holdout_second=[s for s in sweep_ny if split+(len(df)-split)//2<=s["bar_index"]<len(df)]
     methods={
         "original_pullback":original_generate(df,"pullback"),
         "original_breakout":original_generate(df,"breakout"),
@@ -97,6 +101,15 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
                 "signals":len(signals),
                 "train":run(df,symbol,signals,0,split,risk_fraction,target_r,spread_pips,leverage),
                 "holdout":run(df,symbol,signals,split,len(df),risk_fraction,target_r,spread_pips,leverage),
+            }
+    for target_r in (0.75,1.0,1.5):
+        for label, signals, start, end in (
+            ("first",ny_holdout_first,split,split+(len(df)-split)//2),
+            ("second",ny_holdout_second,split+(len(df)-split)//2,len(df)),
+        ):
+            results["ny_holdout_"+label+"_"+str(target_r)+"R"]={
+                "signals":len(signals),
+                "holdout":run(df,symbol,signals,start,end,risk_fraction,target_r,spread_pips,leverage),
             }
     return {"symbol":symbol,"candles":len(df),"split_index":split,
             "assumed_spread_pips":spread_pips,"risk_fraction":risk_fraction,
