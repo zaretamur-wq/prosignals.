@@ -1,0 +1,47 @@
+name: Forex Original vs Patterns Measured Comparison
+on:
+  push:
+    branches: [development/shared-backtesting-risk]
+    paths: [.github/workflows/pattern-comparison.yml, compare_original_patterns.py, forex_chart_patterns.py]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Unit tests
+        run: python -m unittest test_forex_chart_patterns -v
+      - name: Fetch actual historical EURUSD 5-minute candles
+        run: |
+          python - <<'PY'
+          import yfinance as yf, pandas as pd
+          df=yf.download('EURUSD=X',period='59d',interval='5m',auto_adjust=True,progress=False,threads=False)
+          if df.empty: raise RuntimeError('No actual candles; do not fabricate results')
+          if isinstance(df.columns,pd.MultiIndex): df.columns=df.columns.get_level_values(0)
+          df=df.rename(columns=str.lower)[['open','high','low','close']].dropna().reset_index()
+          df=df.rename(columns={df.columns[0]:'time'})
+          df['time']=pd.to_datetime(df.time,utc=True)
+          if df.time.iloc[-1]+pd.Timedelta(minutes=5)>pd.Timestamp.now(tz='UTC'): df=df.iloc[:-1]
+          if len(df)<1000: raise RuntimeError('Insufficient real data')
+          df.to_csv('eurusd_real_5m.csv',index=False)
+          print('Actual bars:',len(df),'from',df.time.iloc[0],'to',df.time.iloc[-1])
+          PY
+      - name: Compare original methods vs patterns on same real candles
+        run: python compare_original_patterns.py --csv eurusd_real_5m.csv --symbol EURUSD --risk 0.03 --rr 2 --output comparison_results.json
+      - name: Upload measured results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eurusd-pattern-comparison
+          path: |
+            comparison_results.json
+            eurusd_real_5m.csv
+          if-no-files-found: ignore
+          retention-days: 14
