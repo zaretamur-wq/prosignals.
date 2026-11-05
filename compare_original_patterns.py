@@ -10,17 +10,38 @@ from historical_replay import load_csv
 from research_entry_candidates import generate as original_generate
 from forex_chart_patterns import generate as pattern_generate
 from research_xm_standard_forex import run, PIP, SPREAD_PIPS
+import pandas as pd
 
 def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
     split=int(len(df)*0.7)
     if split<300 or len(df)-split<100:
         raise ValueError("Need at least 1000 candles for comparison")
     results={}
+    # Closed-candle trend and stop-distance quality filter; no lookahead.
+    close=df["close"]
+    ema20=close.ewm(span=20,adjust=False).mean()
+    ema80=close.ewm(span=80,adjust=False).mean()
+    tr=pd.concat([df.high-df.low,(df.high-close.shift()).abs(),
+                  (df.low-close.shift()).abs()],axis=1).max(axis=1)
+    atr=tr.rolling(14).mean()
+    raw_patterns=pattern_generate(df)
+    filtered=[]
+    for s in raw_patterns:
+        i=s["bar_index"]
+        if i<100 or pd.isna(atr.iloc[i]) or atr.iloc[i]<=0: continue
+        direction=1 if s["side"]=="BUY" else -1
+        trend=direction*(ema20.iloc[i]-ema80.iloc[i])>0
+        slope=direction*(ema80.iloc[i]-ema80.iloc[i-5])>0
+        stop_distance=direction*(float(df.close.iloc[i])-float(s["stop"]))
+        # Stop not so tight that assumed spread dominates, nor too wide.
+        if trend and slope and 0.8*atr.iloc[i]<=stop_distance<=2.5*atr.iloc[i]:
+            filtered.append(s)
     methods={
         "original_pullback":original_generate(df,"pullback"),
         "original_breakout":original_generate(df,"breakout"),
         "original_range":original_generate(df,"range"),
-        "chart_patterns_all":pattern_generate(df),
+        "chart_patterns_all":raw_patterns,
+        "chart_patterns_trend_filtered":filtered,
     }
     for name, signals in methods.items():
         results[name]={
