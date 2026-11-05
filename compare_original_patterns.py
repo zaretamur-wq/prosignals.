@@ -130,6 +130,12 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
             "signals":len(ny_sweep_strong_rejection),
             "holdout":run(df,symbol,ny_sweep_strong_rejection,split,len(df),risk_fraction,1.0,spread_pips+extra_spread,leverage),
         }
+    # Check whether the promising 1.5R strong-rejection result survives costs.
+    for extra_spread in (0.5,1.0,2.0):
+        results["ny_strong_rejection_1.5R_spread_+"+str(extra_spread)+"pips"]={
+            "signals":len(ny_sweep_strong_rejection),
+            "holdout":run(df,symbol,ny_sweep_strong_rejection,split,len(df),risk_fraction,1.5,spread_pips+extra_spread,leverage),
+        }
     # Stress-test the fixed 1R NY-session rule with wider assumed spreads.
     # These scenarios are evaluated on the untouched holdout, not optimized.
     for extra_spread in (0.5,1.0,2.0):
