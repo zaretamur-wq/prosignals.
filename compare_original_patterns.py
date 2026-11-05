@@ -70,13 +70,23 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
         "m5_breakout_retest":m5_retest,
         "m5_rsi_liquidity_sweep":m5_sweep,
     }
-    # Exit-structure sweep: identical entries, compare 0.75R, 1R, 1.5R and 2R.\n    # Training metrics guide selection; holdout is reported separately.\n    for name, signals in methods.items():
+    # Exit-structure sweep: identical entries, compare 0.75R, 1R, 1.5R and 2R.
+    # Training metrics guide selection; holdout is reported separately.
+    for name, signals in methods.items():
         results[name]={
             "signals":len(signals),
             "train":run(df,symbol,signals,0,split,risk_fraction,rr,spread_pips,leverage),
             "holdout":run(df,symbol,signals,split,len(df),risk_fraction,rr,spread_pips,leverage),
         }
-    for name in ("m5_rsi_liquidity_sweep","chart_patterns_all","m5_breakout_retest"):\n        signals=methods[name]\n        for target_r in (0.75,1.0,1.5):\n            results[name+"_target_"+str(target_r)+"R"]={\n                "signals":len(signals),\n                "train":run(df,symbol,signals,0,split,risk_fraction,target_r,spread_pips,leverage),\n                "holdout":run(df,symbol,signals,split,len(df),risk_fraction,target_r,spread_pips,leverage),\n            }\n    return {"symbol":symbol,"candles":len(df),"split_index":split,
+    for name in ("m5_rsi_liquidity_sweep","chart_patterns_all","m5_breakout_retest"):
+        signals=methods[name]
+        for target_r in (0.75,1.0,1.5):
+            results[name+"_target_"+str(target_r)+"R"]={
+                "signals":len(signals),
+                "train":run(df,symbol,signals,0,split,risk_fraction,target_r,spread_pips,leverage),
+                "holdout":run(df,symbol,signals,split,len(df),risk_fraction,target_r,spread_pips,leverage),
+            }
+    return {"symbol":symbol,"candles":len(df),"split_index":split,
             "assumed_spread_pips":spread_pips,"risk_fraction":risk_fraction,
             "rr":rr,"results":results,
             "limitations":"No real broker quotes, commissions, swaps or news; H1 research engine reused; not an M5 execution validation. No live orders."}
@@ -97,6 +107,7 @@ def main():
     result=compare(df,a.symbol,SPREAD_PIPS[a.symbol] if a.spread_pips is None else a.spread_pips,a.risk,a.rr,a.leverage)
     path=Path(a.output)
     path.parent.mkdir(parents=True,exist_ok=True)
-    path.write_text(json.dumps(result,indent=2)+"\n")
+    path.write_text(json.dumps(result,indent=2)+"
+")
     print(json.dumps(result,indent=2))
 if __name__=="__main__":main()
