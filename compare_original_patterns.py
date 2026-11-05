@@ -61,6 +61,14 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
             m5_sweep.append({"bar_index":i,"side":"BUY","stop":float(b.low)-0.1*a,"pattern":"sweep"})
         elif b.high>hi+0.1*a and b.close<hi and b.close<b.open and rsi.iloc[i]>52:
             m5_sweep.append({"bar_index":i,"side":"SELL","stop":float(b.high)+0.1*a,"pattern":"sweep"})
+    # Causal session and volatility gates on liquidity-sweep entries.
+    # UTC hour is read only from the signal candle, never future bars.
+    timestamps=pd.to_datetime(df["time"],utc=True,errors="coerce") if "time" in df.columns else pd.to_datetime(df.index,utc=True,errors="coerce")
+    atr_baseline=atr.rolling(100,min_periods=100).median()
+    sweep_london=[s for s in m5_sweep if 7<=timestamps.iloc[s["bar_index"]].hour<16]
+    sweep_ny=[s for s in m5_sweep if 12<=timestamps.iloc[s["bar_index"]].hour<21]
+    sweep_vol=[s for s in m5_sweep if pd.notna(atr_baseline.iloc[s["bar_index"]]) and atr.iloc[s["bar_index"]]>=atr_baseline.iloc[s["bar_index"]]]
+    sweep_london_vol=[s for s in sweep_london if pd.notna(atr_baseline.iloc[s["bar_index"]]) and atr.iloc[s["bar_index"]]>=atr_baseline.iloc[s["bar_index"]]]
     methods={
         "original_pullback":original_generate(df,"pullback"),
         "original_breakout":original_generate(df,"breakout"),
@@ -69,6 +77,10 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
         "chart_patterns_trend_filtered":filtered,
         "m5_breakout_retest":m5_retest,
         "m5_rsi_liquidity_sweep":m5_sweep,
+        "m5_sweep_london":sweep_london,
+        "m5_sweep_ny":sweep_ny,
+        "m5_sweep_high_volatility":sweep_vol,
+        "m5_sweep_london_high_volatility":sweep_london_vol,
     }
     # Exit-structure sweep: identical entries, compare 0.75R, 1R, 1.5R and 2R.
     # Training metrics guide selection; holdout is reported separately.
@@ -78,7 +90,7 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
             "train":run(df,symbol,signals,0,split,risk_fraction,rr,spread_pips,leverage),
             "holdout":run(df,symbol,signals,split,len(df),risk_fraction,rr,spread_pips,leverage),
         }
-    for name in ("m5_rsi_liquidity_sweep","chart_patterns_all","m5_breakout_retest"):
+    for name in ("m5_rsi_liquidity_sweep","chart_patterns_all","m5_breakout_retest","m5_sweep_london","m5_sweep_ny","m5_sweep_high_volatility","m5_sweep_london_high_volatility"):
         signals=methods[name]
         for target_r in (0.75,1.0,1.5):
             results[name+"_target_"+str(target_r)+"R"]={
