@@ -73,6 +73,19 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
     # Restrict signals to the first and second half of the holdout independently.
     ny_holdout_first=[s for s in sweep_ny if split<=s["bar_index"]<split+(len(df)-split)//2]
     ny_holdout_second=[s for s in sweep_ny if split+(len(df)-split)//2<=s["bar_index"]<len(df)]
+    # Strong-rejection subset: require the sweep candle to close well back
+    # inside the prior range. All inputs are from the closed signal candle.
+    ny_sweep_strong_rejection=[]
+    for s in sweep_ny:
+        i=s["bar_index"]
+        a=float(atr.iloc[i])
+        if not a>0: continue
+        b=df.iloc[i]
+        prior=df.iloc[i-21:i-1]
+        if s["side"]=="BUY" and b.close>=float(prior.low.min())+0.35*a:
+            ny_sweep_strong_rejection.append(s)
+        elif s["side"]=="SELL" and b.close<=float(prior.high.max())-0.35*a:
+            ny_sweep_strong_rejection.append(s)
     methods={
         "original_pullback":original_generate(df,"pullback"),
         "original_breakout":original_generate(df,"breakout"),
@@ -83,6 +96,7 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
         "m5_rsi_liquidity_sweep":m5_sweep,
         "m5_sweep_london":sweep_london,
         "m5_sweep_ny":sweep_ny,
+        "ny_sweep_strong_rejection":ny_sweep_strong_rejection,
         "m5_sweep_high_volatility":sweep_vol,
         "m5_sweep_london_high_volatility":sweep_london_vol,
     }
@@ -94,7 +108,7 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
             "train":run(df,symbol,signals,0,split,risk_fraction,rr,spread_pips,leverage),
             "holdout":run(df,symbol,signals,split,len(df),risk_fraction,rr,spread_pips,leverage),
         }
-    for name in ("m5_rsi_liquidity_sweep","chart_patterns_all","m5_breakout_retest","m5_sweep_london","m5_sweep_ny","m5_sweep_high_volatility","m5_sweep_london_high_volatility"):
+    for name in ("m5_rsi_liquidity_sweep","chart_patterns_all","m5_breakout_retest","m5_sweep_london","m5_sweep_ny","m5_sweep_high_volatility","m5_sweep_london_high_volatility","ny_sweep_strong_rejection"):
         signals=methods[name]
         for target_r in (0.75,1.0,1.5):
             results[name+"_target_"+str(target_r)+"R"]={
@@ -111,6 +125,11 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
                 "signals":len(signals),
                 "holdout":run(df,symbol,signals,start,end,risk_fraction,target_r,spread_pips,leverage),
             }
+    for extra_spread in (0.5,1.0):
+        results["ny_strong_rejection_spread_+"+str(extra_spread)+"pips"]={
+            "signals":len(ny_sweep_strong_rejection),
+            "holdout":run(df,symbol,ny_sweep_strong_rejection,split,len(df),risk_fraction,1.0,spread_pips+extra_spread,leverage),
+        }
     # Stress-test the fixed 1R NY-session rule with wider assumed spreads.
     # These scenarios are evaluated on the untouched holdout, not optimized.
     for extra_spread in (0.5,1.0,2.0):
