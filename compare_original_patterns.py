@@ -36,12 +36,39 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
         # Stop not so tight that assumed spread dominates, nor too wide.
         if trend and slope and 0.8*atr.iloc[i]<=stop_distance<=2.5*atr.iloc[i]:
             filtered.append(s)
+    # Independent M5 candidates: confirmed breakout retest and RSI sweep.
+    # At index i only bars <= i are read; entry is simulated next bar.
+    rsi_delta=close.diff()
+    up=rsi_delta.clip(lower=0).ewm(alpha=1/14,adjust=False).mean()
+    down=(-rsi_delta.clip(upper=0)).ewm(alpha=1/14,adjust=False).mean()
+    rsi=100-100/(1+up/down.replace(0,float("nan")))
+    adx_tr=tr.ewm(alpha=1/14,adjust=False).mean()
+    m5_retest=[]
+    m5_sweep=[]
+    for i in range(110,len(df)-1):
+        a=float(atr.iloc[i])
+        if not a>0:continue
+        previous=df.iloc[i-21:i-1]
+        hi=float(previous.high.max())
+        lo=float(previous.low.min())
+        b=df.iloc[i]; p=df.iloc[i-1]
+        # Prior bar breaks old range; current completed bar retests.
+        if p.close>hi+0.12*a and b.low<=hi+0.15*a and b.close>hi and b.close>b.open and ema20.iloc[i]>ema80.iloc[i]:
+            m5_retest.append({"bar_index":i,"side":"BUY","stop":min(float(b.low),hi-0.5*a),"pattern":"retest"})
+        elif p.close<lo-0.12*a and b.high>=lo-0.15*a and b.close<lo and b.close<b.open and ema20.iloc[i]<ema80.iloc[i]:
+            m5_retest.append({"bar_index":i,"side":"SELL","stop":max(float(b.high),lo+0.5*a),"pattern":"retest"})
+        if b.low<lo-0.1*a and b.close>lo and b.close>b.open and rsi.iloc[i]<48:
+            m5_sweep.append({"bar_index":i,"side":"BUY","stop":float(b.low)-0.1*a,"pattern":"sweep"})
+        elif b.high>hi+0.1*a and b.close<hi and b.close<b.open and rsi.iloc[i]>52:
+            m5_sweep.append({"bar_index":i,"side":"SELL","stop":float(b.high)+0.1*a,"pattern":"sweep"})
     methods={
         "original_pullback":original_generate(df,"pullback"),
         "original_breakout":original_generate(df,"breakout"),
         "original_range":original_generate(df,"range"),
         "chart_patterns_all":raw_patterns,
         "chart_patterns_trend_filtered":filtered,
+        "m5_breakout_retest":m5_retest,
+        "m5_rsi_liquidity_sweep":m5_sweep,
     }
     for name, signals in methods.items():
         results[name]={
