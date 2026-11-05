@@ -107,7 +107,6 @@ def main():
     result=compare(df,a.symbol,SPREAD_PIPS[a.symbol] if a.spread_pips is None else a.spread_pips,a.risk,a.rr,a.leverage)
     path=Path(a.output)
     path.parent.mkdir(parents=True,exist_ok=True)
-    path.write_text(json.dumps(result,indent=2)+"
-")
+    path.write_text(json.dumps(result,indent=2)+chr(10))
     print(json.dumps(result,indent=2))
 if __name__=="__main__":main()
