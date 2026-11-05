@@ -111,6 +111,14 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
                 "signals":len(signals),
                 "holdout":run(df,symbol,signals,start,end,risk_fraction,target_r,spread_pips,leverage),
             }
+    # Stress-test the fixed 1R NY-session rule with wider assumed spreads.
+    # These scenarios are evaluated on the untouched holdout, not optimized.
+    for extra_spread in (0.5,1.0,2.0):
+        results["ny_session_spread_stress_+"+str(extra_spread)+"pips"]={
+            "signals":len(sweep_ny),
+            "assumed_spread_pips":spread_pips+extra_spread,
+            "holdout":run(df,symbol,sweep_ny,split,len(df),risk_fraction,1.0,spread_pips+extra_spread,leverage),
+        }
     return {"symbol":symbol,"candles":len(df),"split_index":split,
             "assumed_spread_pips":spread_pips,"risk_fraction":risk_fraction,
             "rr":rr,"results":results,
