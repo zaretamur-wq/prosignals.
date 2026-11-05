@@ -63,7 +63,7 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
             m5_sweep.append({"bar_index":i,"side":"SELL","stop":float(b.high)+0.1*a,"pattern":"sweep"})
     # Causal session and volatility gates on liquidity-sweep entries.
     # UTC hour is read only from the signal candle, never future bars.
-    timestamps=pd.to_datetime(df["time"],utc=True,errors="coerce") if "time" in df.columns else pd.to_datetime(df.index,utc=True,errors="coerce")
+    timestamps=pd.Series(pd.to_datetime(df["time"],utc=True,errors="coerce") if "time" in df.columns else pd.to_datetime(df.index,utc=True,errors="coerce"),index=df.index)
     atr_baseline=atr.rolling(100,min_periods=100).median()
     sweep_london=[s for s in m5_sweep if 7<=timestamps.iloc[s["bar_index"]].hour<16]
     sweep_ny=[s for s in m5_sweep if 12<=timestamps.iloc[s["bar_index"]].hour<21]
