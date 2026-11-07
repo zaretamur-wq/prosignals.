@@ -5,6 +5,7 @@ No live execution or broker access.
 """
 import argparse
 import json
+import math
 from pathlib import Path
 
 
@@ -23,9 +24,15 @@ def assess(comparison, candidate, min_trades=100, min_profit_factor=1.2,
             continue
         for key in ("trades", "win_rate_pct", "profit_factor", "max_drawdown_pct", "net_pnl_usd"):
             value = metrics.get(key)
-            if not isinstance(value, (int, float)) or not __import__("math").isfinite(value):
+            if type(value) not in (int, float) or not math.isfinite(value):
                 reasons.append(partition + "_" + key + "_missing_or_invalid")
         if any(x.startswith(partition + "_") for x in reasons):
+            continue
+        if (type(metrics["trades"]) is not int or metrics["trades"] < 0
+                or not 0 <= metrics["win_rate_pct"] <= 100
+                or metrics["profit_factor"] < 0
+                or not 0 <= metrics["max_drawdown_pct"] <= 100):
+            reasons.append(partition + "_invalid_metric_range")
             continue
         if metrics["trades"] < min_trades:
             reasons.append(partition + "_insufficient_trades")
