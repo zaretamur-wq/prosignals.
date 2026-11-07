@@ -73,6 +73,10 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
     # Restrict signals to the first and second half of the holdout independently.
     ny_holdout_first=[s for s in sweep_ny if split<=s["bar_index"]<split+(len(df)-split)//2]
     ny_holdout_second=[s for s in sweep_ny if split+(len(df)-split)//2<=s["bar_index"]<len(df)]
+    # London is a challenger, never a replacement for the NY baseline.
+    # Fixed UTC window, same split boundaries and cost assumptions.
+    london_holdout_first=[s for s in sweep_london if split<=s["bar_index"]<split+(len(df)-split)//2]
+    london_holdout_second=[s for s in sweep_london if split+(len(df)-split)//2<=s["bar_index"]<len(df)]
     # Strong-rejection subset: require the sweep candle to close well back
     # inside the prior range. All inputs are from the closed signal candle.
     ny_sweep_strong_rejection=[]
@@ -122,6 +126,17 @@ def compare(df, symbol, spread_pips, risk_fraction=0.03, rr=2.0, leverage=100):
             ("second",ny_holdout_second,split+(len(df)-split)//2,len(df)),
         ):
             results["ny_holdout_"+label+"_"+str(target_r)+"R"]={
+                "signals":len(signals),
+                "holdout":run(df,symbol,signals,start,end,risk_fraction,target_r,spread_pips,leverage),
+            }
+    # Compare the London challenger on both holdout halves without changing
+    # the NY entries or selecting a winning session based on holdout.
+    for target_r in (1.0,2.0):
+        for label, signals, start, end in (
+            ("first",london_holdout_first,split,split+(len(df)-split)//2),
+            ("second",london_holdout_second,split+(len(df)-split)//2,len(df)),
+        ):
+            results["london_holdout_"+label+"_"+str(target_r)+"R"]={
                 "signals":len(signals),
                 "holdout":run(df,symbol,signals,start,end,risk_fraction,target_r,spread_pips,leverage),
             }
