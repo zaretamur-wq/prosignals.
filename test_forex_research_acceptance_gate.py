@@ -24,6 +24,19 @@ class ForexResearchAcceptanceGateTests(unittest.TestCase):
         result = assess({"results": {"s": {"train": metrics(trades=31), "holdout": metrics(trades=26)}}}, "s")
         self.assertIn("holdout_insufficient_trades", result["reasons"])
 
+    def test_invalid_ranges_and_boolean_metrics_fail_closed(self):
+        for bad in (
+            metrics(trades=True),
+            metrics(win_rate=101),
+            metrics(win_rate=-1),
+            metrics(pf=-0.5),
+            metrics(dd=101),
+            metrics(trades=120.5),
+        ):
+            result = assess({"results": {"s": {"train": bad, "holdout": metrics()}}}, "s")
+            self.assertFalse(result["research_metrics_pass"])
+            self.assertTrue(any(reason.startswith("train_") for reason in result["reasons"]))
+
     def test_missing_and_nan_fail_closed(self):
         self.assertFalse(assess({"results": {}}, "s")["accepted"])
         result = assess({"results": {"s": {"train": metrics(pf=float("nan")), "holdout": metrics()}}}, "s")
