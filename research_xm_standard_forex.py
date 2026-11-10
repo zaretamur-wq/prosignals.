@@ -6,7 +6,6 @@ stop-first OHLC exits. One position at a time; no overlapping signals.
 import argparse
 import json
 from pathlib import Path
-from historical_replay import load_csv
 from research_entry_candidates import generate
 
 CONTRACT = 100000
@@ -92,6 +91,7 @@ def main():
     a=p.parse_args()
     if a.leverage <= 0 or (a.spread_pips is not None and a.spread_pips < 0):
         p.error("leverage must be positive and spread nonnegative")
+    from historical_replay import load_csv
     df=load_csv(a.csv)
     if len(df)<300:
         p.error("at least 300 candles required")
