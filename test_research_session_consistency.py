@@ -1,5 +1,5 @@
 import unittest
-from research_session_consistency import screen_session
+from research_session_consistency import screen_session, wilson_lower_bound
 
 
 def metrics(trades=40, pnl=5, pf=1.2, dd=7, wr=60):
@@ -44,6 +44,29 @@ class SessionConsistencyTests(unittest.TestCase):
         self.assertIn("first_invalid", screen_session(c, "ny")["reasons"])
         with self.assertRaises(ValueError):
             screen_session(c, "ny", min_trades_per_half=True)
+
+    def test_wilson_bound_is_conservative(self):
+        self.assertLess(wilson_lower_bound(15, 20), .75)
+        self.assertLess(wilson_lower_bound(75, 100), .75)
+        with self.assertRaises(ValueError):
+            wilson_lower_bound(11, 10)
+
+    def test_rejects_inconsistent_explicit_wins(self):
+        m = metrics(trades=40, wr=60)
+        m["wins"] = 20
+        c = {"results": {f"ny_holdout_{half}_1.0R": {"holdout": m}
+                         for half in ("first", "second")}}
+        result = screen_session(c, "ny")
+        self.assertIn("first_win_count_mismatch", result["reasons"])
+
+    def test_reports_optional_confidence_without_claiming_approval(self):
+        m = metrics(trades=40, wr=60)
+        m["wins"] = 24
+        c = {"results": {f"ny_holdout_{half}_1.0R": {"holdout": m}
+                         for half in ("first", "second")}}
+        result = screen_session(c, "ny")
+        self.assertLess(result["wilson_95_lower_bound_pct"]["first"], 60)
+        self.assertIn("NOT independent validation", result["note"])
 
     def test_rejects_missing_or_invalid(self):
         self.assertIn("first_missing", screen_session({"results": {}}, "ny")["reasons"])
