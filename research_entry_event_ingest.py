@@ -40,15 +40,27 @@ def funnel_from_events(events, bars_checked_by_year):
         if decision == "rejected" and reason not in REJECTION_REASONS:
             raise ValueError("rejected event needs known reason")
         groups[(symbol, year)].append((decision, reason))
-    unknown = set(groups) - set(bars_checked_by_year)
-    if unknown:
-        raise ValueError("event year lacks checked-bar count")
-    result = []
-    for key, bars in sorted(bars_checked_by_year.items()):
+    # Normalize checked-bar keys exactly like events. Otherwise a lower-case
+    # symbol silently appears as an empty year, hiding real accepted signals.
+    normalized_bars = {}
+    for key, bars in bars_checked_by_year.items():
         if not isinstance(key, tuple) or len(key) != 2:
             raise ValueError("bar-count keys must be (symbol, year)")
         symbol, year = key
-        rows = groups[key]
+        if not isinstance(symbol, str) or not symbol.strip():
+            raise ValueError("bar-count symbol required")
+        if type(year) is not int or not 2000 <= year <= 2100:
+            raise ValueError("invalid bar-count year")
+        normalized_key = (symbol.strip().upper(), year)
+        if normalized_key in normalized_bars:
+            raise ValueError("duplicate normalized bar-count key")
+        normalized_bars[normalized_key] = bars
+    unknown = set(groups) - set(normalized_bars)
+    if unknown:
+        raise ValueError("event year lacks checked-bar count")
+    result = []
+    for (symbol, year), bars in sorted(normalized_bars.items()):
+        rows = groups[(symbol, year)]
         accepted = sum(decision == "accepted" for decision, _ in rows)
         rejected = {}
         for decision, reason in rows:
