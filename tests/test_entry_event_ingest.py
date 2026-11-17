@@ -49,5 +49,22 @@ class EventIngestTests(unittest.TestCase):
             funnel_from_events([row], {("XAUUSD", 2025): 10})
 
 
+    def test_normalized_bar_keys_do_not_hide_signals(self):
+        row = {"symbol": "EURUSD", "year": 2025, "event_id": "a",
+               "decision": "accepted"}
+        result = funnel_from_events([row], {(" eurusd ", 2025): 3})
+        self.assertEqual(result[0]["symbol"], "EURUSD")
+        self.assertEqual(result[0]["accepted_entries"], 1)
+
+    def test_duplicate_normalized_bar_keys_rejected(self):
+        with self.assertRaises(ValueError):
+            funnel_from_events([], {("EURUSD", 2025): 3,
+                                    (" eurusd ", 2025): 3})
+
+    def test_invalid_bar_key_rejected_even_without_events(self):
+        for key in [("", 2025), ("EURUSD", True), ("EURUSD", 1999)]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                funnel_from_events([], {key: 3})
+
 if __name__ == "__main__":
     unittest.main()
