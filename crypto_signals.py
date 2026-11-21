@@ -453,13 +453,7 @@ def notify(msg):
     if private_chat:
         recipients.append(("private", private_chat, msg))
     if public_channel and public_channel != private_chat:
-        public_msg = (
-            "🧪 EXPERIMENTAL / DEMO SIGNALS ONLY\n"
-            + msg
-            + "\n\n⚠️ Educational testing only. Trading carries significant risk."
-            " No guaranteed profits. Not investment advice."
-        )
-        recipients.append(("public channel", public_channel, public_msg))
+        recipients.append(("public channel", public_channel, msg))
     if token:
         for recipient_name, chat_id, message in recipients:
             try:
@@ -636,7 +630,7 @@ def cycle(state, mem, manual=False):
                + (f"Fear & Greed: {fng}\n" if fng else "")
                + "News window: clear\n"
                + ("Headlines:\n- " + "\n- ".join(hl) + "\n" if hl else "")
-               + "Demo analysis only. Not financial advice. Valid about 15 min.")
+               + "Trading carries risk. Not financial advice. Valid about 15 min.")
         notify(f"{'🟢 BUY' if buy else '🔴 SELL'} {w['name']} (5m scalp)\nScore {r['score']}/100\nEntry: {fmt(e)}\nStop-loss: {fmt(sl)}\nTP1: {fmt(tp1)}\nTP2: {fmt(tp2)}\nSkip if price is already beyond {fmt(skip_beyond)}")
         state["open"].append({"name": w["name"], "side": r["side"], "time": r["time"].isoformat(),
                               "checked": r["time"].isoformat(), "entry": e, "sl": sl, "tp1": tp1,
