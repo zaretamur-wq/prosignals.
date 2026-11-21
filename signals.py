@@ -245,13 +245,33 @@ def fmt(x):
 
 def notify(msg):
     print(msg)
-    tok, cid = os.environ.get("TG_TOKEN"), os.environ.get("TG_CHAT_ID")
-    if tok and cid:
-        try:
-            requests.get(f"https://api.telegram.org/bot{tok}/sendMessage",
-                         params={"chat_id": cid, "text": msg}, timeout=20)
-        except Exception as ex:
-            print("telegram failed:", ex)
+    token = os.environ.get("TG_TOKEN")
+    private_chat = os.environ.get("TG_CHAT_ID")
+    public_channel = os.environ.get("TG_CHANNEL_ID")
+    recipients = []
+    if private_chat:
+        recipients.append(("private", private_chat, msg))
+    if public_channel and public_channel != private_chat:
+        public_msg = (
+            "🧪 EXPERIMENTAL / DEMO SIGNALS ONLY\n"
+            + msg
+            + "\n\n⚠️ Educational testing only. Trading carries significant risk."
+            " No guaranteed profits. Not investment advice."
+        )
+        recipients.append(("public channel", public_channel, public_msg))
+    if token:
+        for recipient_name, chat_id, message in recipients:
+            try:
+                response = requests.get(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    params={"chat_id": chat_id, "text": message},
+                    timeout=20,
+                )
+                if not response.ok:
+                    print("telegram failed:", recipient_name, "HTTP", response.status_code)
+            except Exception as ex:
+                # Do not print exception URLs; they can contain the bot token.
+                print("telegram failed:", recipient_name, type(ex).__name__)
     ph, key = os.environ.get("WA_PHONE"), os.environ.get("WA_KEY")
     if ph and key:
         try:
