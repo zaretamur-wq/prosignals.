@@ -1,37 +1,31 @@
-# Optional ProSignals Telegram public-channel delivery
+# ProSignals Telegram public channel delivery
 
-Public channel: https://t.me/ProSignalsSignalsHub
+Channel: https://t.me/ProSignalsSignalsHub
+Bot: @ZareSignalbot
 
-The two existing signal workflows send Telegram messages to one private chat using `TG_CHAT_ID`.
-This opt-in feature allows them to send a **separate, clearly labeled experimental
-copy** to a public channel without removing private alerts.
+Both the existing Forex and crypto GitHub Actions workflows keep sending private
+notifications to `TG_CHAT_ID`. They now also address the public channel directly
+with `TG_CHANNEL_ID: "@ProSignalsSignalsHub"` (public username, not a secret).
+No changes to the existing `TG_TOKEN` or `TG_CHAT_ID` secrets are necessary.
 
-## Activate only when ready
+## Required Telegram setup
 
-1. In Telegram, open the ProSignals public channel, go to **Administrators**, and
-   confirm that `@ZareSignalbot` is an administrator with **Post Messages** permission.
-   Do not grant unnecessary administrator rights.
-2. In GitHub, open the `zaretamur-wq/prosignals.` repository and navigate to
-   **Settings → Secrets and variables → Actions → New repository secret**.
-3. Create the secret **`TG_CHANNEL_ID`** with value **`@ProSignalsSignalsHub`**.
-   This public channel username can be used as the Telegram Bot API chat_id.
-   Do **not** change `TG_CHAT_ID`, or your private alerts may stop.
-4. Merge the code change when you are ready to opt in. Both scheduled workflows
-   will then deliver new alerts to both destinations while the channel secret exists.
-   If `TG_CHANNEL_ID` is absent, behavior remains private-chat only.
-5. Before inviting subscribers, verify the channel link and post a harmless test
-   message. Manually dispatching a workflow can evaluate live market data, so do
-   **not** treat it as a harmless message-only test.
+1. In Telegram, open the public ProSignals channel.
+2. Go to **Administrators** and confirm that `@ZareSignalbot` is included with
+   **Post Messages** permission. Do not grant unnecessary privileges.
+3. Keep Discussion unlinked to prevent comments. Members cannot post in channels.
+4. Verify that the public link resolves and joining works from another account.
+5. Confirm the next scheduled signal or status update reaches both destinations.
+   Sending messages via GitHub workflows may require waiting for a qualifying
+   signal; no guarantee a new trade is emitted on each run.
 
-## Subscriber safety
+## Public testing precautions
 
-The public-channel version of each notification is labeled **EXPERIMENTAL / DEMO**
-and notes trading risk. Public channel subscribers cannot post unless you link
-a discussion group or grant channel posting permissions.
+Every public message is explicitly prefixed as **EXPERIMENTAL / DEMO SIGNALS ONLY**
+and includes a risk disclaimer. Results are not verified; publication should
+not imply profitability. Record all trade outcomes, including losses, and
+review applicable UAE financial-promotion requirements before sharing broadly
+or charging members.
 
-This feature **does not** send historical private-chat messages to the channel,
-prove the signals profitable, or independently verify the public join link.
-Track every outcome, including stop losses, and check applicable financial
-promotion regulations before offering public or paid signals.
-
-Never paste `TG_TOKEN` into GitHub source, screenshots, or public chat.
+Existing private bot-chat history is not automatically migrated. Do not expose
+`TG_TOKEN` or your private `TG_CHAT_ID` publicly.
