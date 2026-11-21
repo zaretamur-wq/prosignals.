@@ -252,13 +252,7 @@ def notify(msg):
     if private_chat:
         recipients.append(("private", private_chat, msg))
     if public_channel and public_channel != private_chat:
-        public_msg = (
-            "🧪 EXPERIMENTAL / DEMO SIGNALS ONLY\n"
-            + msg
-            + "\n\n⚠️ Educational testing only. Trading carries significant risk."
-            " No guaranteed profits. Not investment advice."
-        )
-        recipients.append(("public channel", public_channel, public_msg))
+        recipients.append(("public channel", public_channel, msg))
     if token:
         for recipient_name, chat_id, message in recipients:
             try:
@@ -326,7 +320,7 @@ def main():
                f"Why: {', '.join(r['why'])}\n"
                f"News window: clear\n"
                + ("Latest headlines:\n- " + "\n- ".join(hl) + "\n" if hl else "")
-               + "Demo analysis only. Not financial advice.")
+               + "Trading carries risk. Not financial advice.")
         notify(msg)
         state[w["yf"]] = r["time"].isoformat()
 
