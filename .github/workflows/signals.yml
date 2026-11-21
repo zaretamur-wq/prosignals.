@@ -25,7 +25,7 @@ jobs:
         env:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          TG_CHANNEL_ID: ${{ secrets.TG_CHANNEL_ID }}
+          TG_CHANNEL_ID: "@ProSignalsSignalsHub"
           WA_PHONE: ${{ secrets.WA_PHONE }}
           WA_KEY: ${{ secrets.WA_KEY }}
           MANUAL: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
