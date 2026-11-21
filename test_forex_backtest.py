@@ -20,6 +20,14 @@ class ForexBacktestTests(unittest.TestCase):
         result = backtest(candles(), initial=100, risk_pct=0.03)
         self.assertGreaterEqual(result["final_usd"], 0)
         self.assertTrue(all(t["lots"] >= 0.01 for t in result["trade_log"]))
+    def test_signal_diagnostics_are_nonnegative_and_consistent(self):
+        result = backtest(candles(), initial=100, risk_pct=0.03)
+        d = result["signal_diagnostics"]
+        self.assertEqual(set(d), {"daily_halt_bars", "no_signal_bars", "invalid_atr_bars", "min_lot_rejections", "accepted_entries"})
+        self.assertTrue(all(isinstance(v, int) and v >= 0 for v in d.values()))
+        self.assertGreaterEqual(d["accepted_entries"], result["trades"])
+        self.assertGreater(d["no_signal_bars"] + d["min_lot_rejections"] + d["accepted_entries"], 0)
+
     def test_invalid_risk_rejected(self):
         with self.assertRaises(ValueError):
             backtest(candles(), risk_pct=0.04)
