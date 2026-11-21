@@ -46,15 +46,22 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
     atr = tr.ewm(alpha=1/14, adjust=False).mean()
     cash, peak, max_dd, trades = initial, initial, 0.0, []
     daily_guard = DailyRiskGuard(daily_profit_target, daily_loss_limit)
+    diagnostics = {"daily_halt_bars": 0, "no_signal_bars": 0, "invalid_atr_bars": 0, "min_lot_rejections": 0, "accepted_entries": 0}
     i = 201
     while i < len(d)-1:
         if not daily_guard.can_open(d.time.iloc[i+1]):
+            diagnostics["daily_halt_bars"] += 1
             i += 1
             continue
         # Signal uses only COMPLETED candle i; entry occurs next candle.
         buy = ema20.iloc[i] > ema50.iloc[i] and close.iloc[i-1] <= ema20.iloc[i-1] and close.iloc[i] > ema20.iloc[i]
         sell = ema20.iloc[i] < ema50.iloc[i] and close.iloc[i-1] >= ema20.iloc[i-1] and close.iloc[i] < ema20.iloc[i]
-        if not (buy or sell) or not np.isfinite(atr.iloc[i]) or atr.iloc[i] <= 0:
+        if not (buy or sell):
+            diagnostics["no_signal_bars"] += 1
+            i += 1
+            continue
+        if not np.isfinite(atr.iloc[i]) or atr.iloc[i] <= 0:
+            diagnostics["invalid_atr_bars"] += 1
             i += 1
             continue
         direction = 1 if buy else -1
@@ -73,8 +80,10 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
                              risk_fraction=risk_pct, lot_step=min_lot, min_lot=min_lot,
                              extra_cost_usd_per_lot=slippage_pips*PIP_VALUE_PER_LOT[symbol])
         if lots < min_lot:
+            diagnostics["min_lot_rejections"] += 1
             i += 1
             continue
+        diagnostics["accepted_entries"] += 1
         exit_price, outcome, j = None, None, i+1
         while j < len(d):
             bar = d.iloc[j]
@@ -120,7 +129,8 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
             "daily_profit_target_usd":daily_profit_target,
             "daily_loss_limit_usd":daily_loss_limit,
             "daily_limit_note":"Entry gating on UTC realized P&L; overnight positions and gaps can exceed limits.",
-            "trade_log":trades}
+            "trade_log":trades,
+            "signal_diagnostics":diagnostics}
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
