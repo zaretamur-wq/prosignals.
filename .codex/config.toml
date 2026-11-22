@@ -1,0 +1,4 @@
+# Project-scoped Codex MCP configuration for ProSignals
+# Loaded by Codex when this repository/project is trusted.
+[mcp_servers.tauric]
+url = "https://mcp.tauric.ai/mcp"
