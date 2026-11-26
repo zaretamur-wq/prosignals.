@@ -30,10 +30,16 @@ class ForexDiagnosticRegressionTests(unittest.TestCase):
         self.assertEqual(len(result["trade_log"]), 0)
 
     def test_unsupported_symbols_fail_closed(self):
-        for symbol in ("USDJPY", "AUDUSD", "XAUUSD"):
+        for symbol in ("USDJPY", "XAUUSD"):
             with self.subTest(symbol=symbol):
-                with self.assertRaisesRegex(ValueError, "Only EURUSD and GBPUSD"):
+                with self.assertRaisesRegex(ValueError, "USDJPY and XAUUSD require verified"):
                     backtest(candles(), symbol=symbol)
+
+    def test_audusd_usd_quoted_pair_supported(self):
+        result = backtest(candles(), symbol="AUDUSD")
+        self.assertEqual(result["symbol"], "AUDUSD")
+        self.assertEqual(result["trades"], 0)
+        self.assertGreater(result["signal_diagnostics"]["no_signal_bars"], 0)
 
     def test_invalid_spread_rejected(self):
         with self.assertRaises(ValueError):
