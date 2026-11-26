@@ -11,15 +11,15 @@ import numpy as np
 from forex_daily_risk import DailyRiskGuard
 from forex_portfolio_risk import size_position
 
-PIP = {"EURUSD": 0.0001, "GBPUSD": 0.0001, "USDJPY": 0.01, "XAUUSD": 0.01}
-PIP_VALUE_PER_LOT = {"EURUSD": 10.0, "GBPUSD": 10.0}  # USD account, approximate
+PIP = {"EURUSD": 0.0001, "GBPUSD": 0.0001, "AUDUSD": 0.0001, "USDJPY": 0.01, "XAUUSD": 0.01}
+PIP_VALUE_PER_LOT = {"EURUSD": 10.0, "GBPUSD": 10.0, "AUDUSD": 10.0}  # USD account; assumed 100k standard lot
 def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
              spread_pips=1.5, slippage_pips=0.2, min_lot=0.01,
              daily_profit_target=15.0, daily_loss_limit=6.0):
     if not (initial > 0 and 0 < risk_pct <= 0.03 and min_lot > 0 and slippage_pips >= 0 and spread_pips >= 0):
         raise ValueError("Invalid initial balance, risk (0-3%), lot step, spread or slippage")
     if symbol not in PIP_VALUE_PER_LOT:
-        raise ValueError("Only EURUSD and GBPUSD supported until symbol-specific pip value is verified")
+        raise ValueError("Only EURUSD, GBPUSD and AUDUSD supported; USDJPY and XAUUSD require verified symbol-specific valuation")
     required = {"time", "open", "high", "low", "close"}
     if not required.issubset(df.columns):
         raise ValueError(f"Missing columns: {required-set(df.columns)}")
@@ -123,7 +123,7 @@ def backtest(df, symbol="EURUSD", initial=100.0, risk_pct=0.03,
     return {"symbol":symbol,"initial_usd":initial,"final_usd":round(cash,2),
             "trades":len(trades),"win_rate_pct":round(100*wins/len(trades),2) if trades else None,
             "max_drawdown_pct":round(100*max_dd,2),"risk_pct_per_trade":risk_pct*100,
-            "assumptions":"mid-price OHLC; spread both sides; slippage entry/exit; stop-first ambiguity; no commissions, swaps, or margin modeling",
+            "assumptions":"mid-price OHLC; USD-quoted majors assume 100k-unit standard lot and $10/pip/lot (broker contract specs unverified); spread both sides; slippage entry/exit; stop-first ambiguity; no commissions, swaps, or margin modeling",
             "skipped_small_account_warning": "At $100, 0.01-lot minimum may still prevent trades at 3% risk.",
             "daily_realized_pnl_usd":daily_guard.summary(),
             "daily_profit_target_usd":daily_profit_target,
