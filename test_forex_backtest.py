@@ -2,7 +2,7 @@
 import unittest
 import numpy as np
 import pandas as pd
-from forex_backtest import backtest
+from forex_backtest import backtest, PIP, PIP_VALUE_PER_LOT
 
 def candles(n=350):
     rng = np.random.default_rng(7)
@@ -27,6 +27,14 @@ class ForexBacktestTests(unittest.TestCase):
         self.assertTrue(all(isinstance(v, int) and v >= 0 for v in d.values()))
         self.assertGreaterEqual(d["accepted_entries"], result["trades"])
         self.assertGreater(d["no_signal_bars"] + d["min_lot_rejections"] + d["accepted_entries"], 0)
+
+    def test_audusd_is_supported_with_usd_quote_standard_lot_assumption(self):
+        self.assertEqual(PIP["AUDUSD"], 0.0001)
+        self.assertEqual(PIP_VALUE_PER_LOT["AUDUSD"], 10.0)
+        result = backtest(candles(), symbol="AUDUSD", initial=100, risk_pct=0.03)
+        self.assertEqual(result["symbol"], "AUDUSD")
+        self.assertEqual(result["risk_pct_per_trade"], 3.0)
+        self.assertTrue(all(t["lots"] >= 0.01 for t in result["trade_log"]))
 
     def test_invalid_risk_rejected(self):
         with self.assertRaises(ValueError):
