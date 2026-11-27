@@ -56,6 +56,14 @@ jobs:
             fee: "0"
             fee_rate: "0"
           - market: forex
+            symbol: AUDUSD
+            file: AUDUSD_1h.csv
+            step: "0.01"
+            min: "0.01"
+            value: "100000"
+            fee: "0"
+            fee_rate: "0"
+          - market: forex
             symbol: USDJPY
             file: USDJPY_1h.csv
             step: "0.01"
@@ -95,8 +103,9 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Download market candles
-        run: python research_data.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --count 7000 --output "research/${{ matrix.file }}"
+        run: python research_data.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --count 7000 --period "2y" --output "research/${{ matrix.file }}"
       - name: Replay original signal score
+        if: matrix.symbol != 'USDJPY'
         run: |
           python historical_replay.py --market "${{ matrix.market }}" --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step "${{ matrix.step }}" --min-quantity "${{ matrix.min }}" --price-value "${{ matrix.value }}" --commission-per-unit-side "${{ matrix.fee }}" --slippage 0.0005 --fee-rate "${{ matrix.fee_rate }}" --report-dir "reports/${{ matrix.symbol }}" --compare-score-thresholds --compare-regimes --holdout --compare-alert-gates --cost-stress
       - name: Backtest XM Standard Forex entry models
@@ -108,11 +117,11 @@ jobs:
         run: |
           python research_entry_comparison.py --csv "research/${{ matrix.file }}" --symbol "${{ matrix.symbol }}" --output "reports/${{ matrix.symbol }}/entry_comparison.json"
       - name: Hypothetical smaller Forex contract experiment
-        if: matrix.symbol == 'EURUSD' || matrix.symbol == 'GBPUSD'
+        if: matrix.symbol == 'EURUSD' || matrix.symbol == 'GBPUSD' || matrix.symbol == 'AUDUSD'
         run: |
           # Independent hypothetical unit contract, NOT a claim about broker lot sizes.
-          # EURUSD/GBPUSD: hypothetical 1 unit of base currency. USDJPY needs
-          # quote-to-USD conversion and gold needs broker contract specifications.
+          # EURUSD/GBPUSD/AUDUSD: hypothetical 1 base-currency unit.
+          # USDJPY needs dynamic quote-to-USD conversion; gold contract specs are unverified.
           python historical_replay.py --market forex --symbol "${{ matrix.symbol }}" --csv "research/${{ matrix.file }}" --capital 100 --quantity-step 1 --min-quantity 1 --price-value 1 --slippage 0.0005 > "reports/${{ matrix.symbol }}/unit_contract_experiment.json"
       - name: Upload research logs and market candles
         if: always()

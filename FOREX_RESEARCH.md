@@ -1,12 +1,15 @@
 # Forex research workflow (XM Standard, USD $100 baseline)
 
-Status: **data ingestion and backtest code exist; no historical backtest has been run or verified.**
+Status: **Research code and the historical smoke workflow exist. A historical run on 2026-11-10 completed successfully, but its one-day artifacts have expired; exploratory findings are summarized below. No strategy is validated.**
 
 ## Public data (while away from MT5 desktop)
 Download EURUSD 5-minute OHLC CSV from a historical provider such as
 https://www.dukascopy-node.app/instrument/eurusd
 and verify its timestamp timezone and whether prices are mid, bid or ask.
 Do not assume that a third-party spread matches XM Standard.
+
+## Historical data workflow
+The GitHub Actions research workflow fetches Yahoo Finance 1-hour candles using a default 2y period for EURUSD, GBPUSD, AUDUSD, USDJPY and GOLD. The downloader also supports 6mo and 1y; --count applies only to crypto. Hourly candles are not broker bid/ask ticks. The generic shared replay is skipped for USDJPY because account-currency conversion must be dynamic; USDJPY is handled by the dedicated XM Standard Forex model in this workflow.
 
 ```bash
 pip install -r requirements.txt
@@ -45,6 +48,12 @@ A 75% win rate is a research goal, not a performance claim.
 - Actual fill losses can exceed planned risk due to gaps/slippage.
 - Do not force trades when broker minimum lot exceeds risk budget.
 - The backtester now uses `DailyRiskGuard` to gate new entries, but overnight positions, unrealized losses, and gaps can exceed thresholds. Integration is committed; CI tests and historical backtests still need verification.
+- The separate XM Standard comparison includes 0.5%, 1%, 2% and 3% risk scenarios; these are research settings, not a live recommendation.
+
+## Verified prior smoke-run findings (2026-11-10)
+The six-job historical workflow completed successfully, but the artifacts were retained for only one day and are now unavailable. The generic signal replay at its default 0.5% risk and 0.01 minimum quantity produced zero completed trades on all four tested Forex/gold symbols: EURUSD (4,202 candles/327 signals), GBPUSD (4,266/345), USDJPY (4,181/254), and GOLD (3,415/348). Their win rates were null (no trades), not 0%.
+
+The separate XM Standard exploratory comparison did produce EURUSD pullback trades at 2% risk and 1.5R: train 87 trades, 43.68% wins, +$12.79; holdout 39 trades, 51.28% wins, +$16.89, profit factor 1.473. This is not independent validation: multiple entry/risk/RR variants were compared, and commission, slippage, swaps, daily-loss guard and broker fills were not modeled. The 75% target remains unverified.
 
 ## CI test status
-A GitHub Actions workflow at `.github/workflows/forex-tests.yml` is configured to run the offline Python tests on future pushes and pull requests. A successful workflow run has not yet been verified; do not infer tests passed from the existence of the workflow.
+A GitHub Actions workflow at `.github/workflows/forex-tests.yml` is configured to run the offline Python tests on future pushes and pull requests. Confirmed successful runs on 2026-11-26: Forex research tests #91 (68 tests), Forex research unit tests #79 (68 tests), and ProSignals Development Tests #206 (78 tests). These are code/unit checks, not evidence of profitability.

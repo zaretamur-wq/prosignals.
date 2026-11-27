@@ -51,9 +51,9 @@ def crypto_okx(symbol, count=3000):
     return frame
 
 
-def forex_yahoo(symbol, period="180d"):
+def forex_yahoo(symbol, period="2y"):
     tickers = {"EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X",
-               "USDJPY": "JPY=X", "GOLD": "GC=F"}
+               "AUDUSD": "AUDUSD=X", "USDJPY": "JPY=X", "GOLD": "GC=F"}
     if symbol not in tickers:
         raise ValueError("unsupported research symbol")
     raw = yf.download(tickers[symbol], period=period, interval="1h",
@@ -80,8 +80,10 @@ def main():
     p.add_argument("--symbol", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--count", type=int, default=3000)
+    p.add_argument("--period", choices=("6mo", "1y", "2y"), default="2y",
+                  help="Yahoo hourly Forex history period (up to two years)")
     args = p.parse_args()
-    df = crypto_okx(args.symbol, args.count) if args.market == "crypto" else forex_yahoo(args.symbol)
+    df = crypto_okx(args.symbol, args.count) if args.market == "crypto" else forex_yahoo(args.symbol, args.period)
     path = Path(args.output)
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)

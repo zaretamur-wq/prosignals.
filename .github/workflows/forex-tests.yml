@@ -16,5 +16,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install numpy pandas
+      - run: python -m pip install numpy pandas yfinance
       - run: python -m unittest discover -p 'test_forex*.py' -v

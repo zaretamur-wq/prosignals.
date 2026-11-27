@@ -11,8 +11,10 @@ from research_entry_candidates import generate
 CONTRACT = 100000
 MIN_LOT = 0.01
 LOT_STEP = 0.01
-SPREAD_PIPS = {"EURUSD": 1.8, "GBPUSD": 2.2, "USDJPY": 2.0}
-PIP = {"EURUSD": .0001, "GBPUSD": .0001, "USDJPY": .01}
+# Illustrative spread scenarios only; not verified broker quotes.
+SPREAD_PIPS = {"EURUSD": 1.8, "GBPUSD": 2.2, "USDJPY": 2.0, "AUDUSD": 2.0}
+PIP = {"EURUSD": .0001, "GBPUSD": .0001, "AUDUSD": .0001, "USDJPY": .01}
+RISK_SCENARIOS = (.005, .01, .02, .03)
 
 def usd_value(symbol, price, quote_amount):
     return quote_amount / price if symbol == "USDJPY" else quote_amount
@@ -103,13 +105,15 @@ def main():
             "starting_equity_usd":100,"minimum_lot":MIN_LOT,"results":{},
             "caveats":["Research only; no live trading.",
                        "Spreads, leverage, minimum lots, commissions and swaps require broker verification.",
+                       "AUDUSD uses an illustrative 2.0-pip spread scenario, not a verified broker quote.",
+                       "The independent model does not enforce the $6 daily loss halt.",
                        "No commission, slippage, swap or news filter modeled; results optimistic in those respects.",
                        "H1 midpoint OHLC cannot resolve intrabar path; stop first when both hit.",
                        "Train and holdout results share no positions; models have not been optimized."]}
     for method in ("pullback","breakout","range"):
         signals=generate(df,method)
         report["results"][method]={}
-        for risk in (.005,.01,.02):
+        for risk in RISK_SCENARIOS:
             for rr in (1.0,1.5,2.0):
                 key=f"risk_{risk*100:g}pct_rr_{rr:g}"
                 report["results"][method][key]={
