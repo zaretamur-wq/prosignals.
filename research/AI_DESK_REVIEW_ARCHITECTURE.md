@@ -12,14 +12,14 @@ Agents provide independent analysis and challenge, not votes that manufacture co
 2. **News & Event Analyst:** checks supplied/verified news and economic calendar context; reports source timestamps, affected instruments, event risk, and uncertainty. If no verified news feed is available, state `UNKNOWN`, never `CLEAR`.
 3. **Strategy Analyst:** independently assess trend, structure, session context, momentum, pullback/breakout quality, and setup consistency against the strategy rules; cite only input fields.
 4. **Bull Case:** strongest evidence supporting the candidate and what must hold.
-5. **Bear Case / Skeptic:** strongest opposing case, invalidation, traps (e.g., liquidity sweep vs. genuine breakout), and missing confirmation.
-6. **Risk Analyst:** independently recompute entry/stop distance, risk/reward, size, exposure, correlated positions, daily loss status, and execution constraints from structured inputs. Deterministic risk functions remain authoritative.
-7. **Desk Lead / Synthesizer:** summarize evidence and disagreements; output `BUY_CANDIDATE`, `SELL_CANDIDATE`, or `WAIT`. Candidate labels are informational only and do not trigger execution. Show reasons, unresolved conflicts, invalidation, and data-quality status.
+5. **Skeptic:** strongest opposing case to the strategy thesis, invalidation, traps (e.g., liquidity sweep vs. genuine breakout), and missing confirmation. The strategy analyst must state its own bull/bear thesis; this role challenges it.
+4. **Risk Analyst:** independently recompute entry/stop distance, risk/reward, size, exposure, correlated positions, daily loss status, and execution constraints from structured inputs. Deterministic risk functions remain authoritative.
+6. **Desk Lead / Synthesizer:** summarize evidence and disagreements; output `BUY_CANDIDATE`, `SELL_CANDIDATE`, or `WAIT`. Candidate labels are informational only and do not trigger execution. Show reasons, unresolved conflicts, invalidation, and data-quality status.
 
 ## Structured review contract
 Every review consumes a frozen snapshot containing: instrument, timeframe, decision timestamp, candle data timestamp, candidate signal, entry/stop/target, indicator values, market-structure features, session, verified news/event records (or explicit unavailable state), spread/slippage/commission assumptions, account equity, existing exposure, and risk-policy state.
 
-Each agent returns machine-parseable JSON:
+The six desk modules are the existing deterministic scanner, News & Event Analyst, Strategy Analyst, Risk Analyst, Skeptic, and Desk Lead. Strategy Analyst states the main thesis; Skeptic challenges it. The four AI reviewer roles return machine-parseable JSON:
 - `agent`, `snapshot_id`, `timestamp`
 - `assessment` (bullish/bearish/neutral/unknown)
 - `evidence[]` (input field/value + short rationale)
