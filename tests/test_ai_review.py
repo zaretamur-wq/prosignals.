@@ -10,7 +10,7 @@ def sample_snapshot():
         "market_data_timestamp": "2026-11-28T11:45:00Z",
         "candidate": {"side": "BUY", "score": 78, "entry": 1.1, "stop": 1.09, "target": 1.12},
         "risk_context": {"gate_pass": True, "daily_pnl": 0.0},
-        "news_context": {"status": "UNKNOWN", "events": []},
+        "news_context": {"status": "VERIFIED", "events": []},
     }
 
 
@@ -19,7 +19,8 @@ def agent_for(role, assessment="neutral"):
         return {
             "agent": role, "snapshot_id": sid, "assessment": assessment,
             "evidence": [], "risks": [], "invalidation": "candidate invalidated",
-            "missing_data": [], "recommendation": "advisory only",
+            "missing_data": [], "confidence": "uncalibrated",
+            "recommendation": "advisory only", "recommendation_conditions": [],
         }
     return fake
 
@@ -80,6 +81,14 @@ class MultiAgentReviewTests(unittest.TestCase):
         agents["bear_case"] = agent_for("bear_case", "bearish")
         result = run_review(sample_snapshot(), agents, True, now="2026-11-28T13:00:00Z")
         self.assertEqual(result.status, "COMPLETE")
+        self.assertEqual(result.verdict, "WAIT")
+        self.assertTrue(result.dissent)
+
+    def test_unknown_news_blocks_candidate_verdict(self):
+        s = sample_snapshot()
+        s["news_context"] = {"status": "UNKNOWN", "events": []}
+        agents = {r: agent_for(r, "bullish") for r in AGENT_ROLES}
+        result = run_review(s, agents, True, now="2026-11-28T13:00:00Z")
         self.assertEqual(result.verdict, "WAIT")
         self.assertTrue(result.dissent)
 
