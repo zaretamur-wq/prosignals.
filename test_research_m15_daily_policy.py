@@ -29,6 +29,18 @@ class M15DailyPolicyTests(unittest.TestCase):
         self.assertFalse(d.allow)
     def test_previous_utc_day_ignored(self):
         self.assertTrue(decide([trade("2026-11-10T08:00:00Z",-6)],NOW).allow)
+    def test_future_same_day_exit_ignored(self):
+        future_loss=trade("2026-11-11T10:00:00Z",-6)
+        future_wins=[trade("2026-11-11T10:00:00Z",2)]*3
+        self.assertTrue(decide([future_loss],NOW).allow)
+        self.assertTrue(decide(future_wins,NOW).allow)
+    def test_streak_uses_close_time_not_input_order(self):
+        out_of_order=[
+            trade("2026-11-11T08:45:00Z",-1),
+            trade("2026-11-11T08:00:00Z",1),
+            trade("2026-11-11T08:30:00Z",-1),
+        ]
+        self.assertEqual(decide(out_of_order,NOW).reason,"consecutive_loss_halt")
     def test_cap(self):
         self.assertEqual(decide([trade(D,0)]*5,NOW).reason,"daily_trade_cap")
     def test_invalid_risk(self):
@@ -36,7 +48,7 @@ class M15DailyPolicyTests(unittest.TestCase):
             decide([],NOW,initial_risk_pct=4)
     def test_nonfinite(self):
         with self.assertRaises(ValueError):
-            decide([trade(D,float("nan"))],NOW)
+            decide([trade(D,float("nan"))],NOW
 
 if __name__=="__main__":
     unittest.main()
