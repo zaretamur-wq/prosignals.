@@ -62,7 +62,8 @@ def validate_agent_output(output: Mapping[str, Any], expected_role: str,
                          snapshot_id: str) -> list[str]:
     errors: list[str] = []
     required = ("agent", "snapshot_id", "assessment", "evidence", "risks",
-                "invalidation", "missing_data", "recommendation")
+                "invalidation", "missing_data", "confidence", "recommendation",
+                "recommendation_conditions")
     for key in required:
         if key not in output:
             errors.append(f"missing output field: {key}")
@@ -74,11 +75,13 @@ def validate_agent_output(output: Mapping[str, Any], expected_role: str,
         errors.append("snapshot ID mismatch")
     if output["assessment"] not in ASSESSMENTS:
         errors.append("invalid assessment")
-    for field in ("evidence", "risks", "missing_data"):
+    for field in ("evidence", "risks", "missing_data", "recommendation_conditions"):
         if not isinstance(output[field], list):
             errors.append(f"{field} must be a list")
     if not isinstance(output["recommendation"], str):
         errors.append("recommendation must be text")
+    if not isinstance(output["confidence"], str):
+        errors.append("confidence must be qualitative text until calibrated")
     return errors
 
 
@@ -97,7 +100,7 @@ Agent = Callable[[Mapping[str, Any], str], Mapping[str, Any]]
 
 
 def run_review(snapshot: Mapping[str, Any], agents: Mapping[str, Agent],
-               hard_gates_pass: bool, now: str | None = None) -> ReviewResult:
+              hard_gates_pass: bool, now: str | None = None) -> ReviewResult:
     """Run injected offline/mock agents and fail closed on invalid inputs or outputs."""
     sid = snapshot_fingerprint(snapshot)
     snapshot_errors = validate_snapshot(snapshot, now=now)
@@ -119,14 +122,18 @@ def run_review(snapshot: Mapping[str, Any], agents: Mapping[str, Agent],
                 errors.extend(f"{role}: {problem}" for problem in problems)
                 continue
             outputs[role] = raw
-        except Exception as exc:  # safe failure: no partial authority
+        except Exception as exc:
             errors.append(f"{role}: agent failed ({type(exc).__name__})")
     if errors or not hard_gates_pass or len(outputs) != len(AGENT_ROLES):
         return ReviewResult(sid, "ABSTAIN", "WAIT", outputs, tuple(dissent),
                            not hard_gates_pass, tuple(errors))
     bullish = [r for r, o in outputs.items() if o["assessment"] == "bullish"]
     bearish = [r for r, o in outputs.items() if o["assessment"] == "bearish"]
-    if bullish and bearish:
+    news_status = str(snapshot["news_context"].get("status", "UNKNOWN")).upper()
+    if news_status not in {"VERIFIED", "CLEAR", "CHECKED"}:
+        dissent.append("news/event context is unknown or unverified")
+        verdict = "WAIT"
+    elif bullish and bearish:
         dissent.append("bullish and bearish assessments conflict")
         verdict = "WAIT"
     elif len(bullish) >= 3:
