@@ -48,7 +48,7 @@ class M15DailyPolicyTests(unittest.TestCase):
             decide([],NOW,initial_risk_pct=4)
     def test_nonfinite(self):
         with self.assertRaises(ValueError):
-            decide([trade(D,float("nan"))],NOW
+            decide([trade(D,float("nan"))],NOW)
 
 if __name__=="__main__":
     unittest.main()
