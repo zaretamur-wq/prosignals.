@@ -77,8 +77,8 @@ class MultiAgentReviewTests(unittest.TestCase):
 
     def test_conflicting_views_preserve_dissent_and_wait(self):
         agents = {r: agent_for(r, "neutral") for r in AGENT_ROLES}
-        agents["bull_case"] = agent_for("bull_case", "bullish")
-        agents["bear_case"] = agent_for("bear_case", "bearish")
+        agents["strategy"] = agent_for("strategy", "bullish")
+        agents["skeptic"] = agent_for("skeptic", "bearish")
         result = run_review(sample_snapshot(), agents, True, now="2026-11-28T13:00:00Z")
         self.assertEqual(result.status, "COMPLETE")
         self.assertEqual(result.verdict, "WAIT")
