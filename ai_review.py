@@ -11,7 +11,7 @@ import json
 from typing import Any, Callable, Mapping
 
 ASSESSMENTS = {"bullish", "bearish", "neutral", "unknown"}
-AGENT_ROLES = ("strategy", "bull_case", "bear_case", "news", "risk")
+AGENT_ROLES = ("strategy", "news", "risk", "skeptic")
 
 
 def _parse_time(value: str) -> datetime:
@@ -127,18 +127,22 @@ def run_review(snapshot: Mapping[str, Any], agents: Mapping[str, Agent],
     if errors or not hard_gates_pass or len(outputs) != len(AGENT_ROLES):
         return ReviewResult(sid, "ABSTAIN", "WAIT", outputs, tuple(dissent),
                            not hard_gates_pass, tuple(errors))
-    bullish = [r for r, o in outputs.items() if o["assessment"] == "bullish"]
-    bearish = [r for r, o in outputs.items() if o["assessment"] == "bearish"]
+    strategy = outputs["strategy"]["assessment"]
+    risk = outputs["risk"]["assessment"]
+    skeptic = outputs["skeptic"]["assessment"]
     news_status = str(snapshot["news_context"].get("status", "UNKNOWN")).upper()
     if news_status not in {"VERIFIED", "CLEAR", "CHECKED"}:
         dissent.append("news/event context is unknown or unverified")
         verdict = "WAIT"
-    elif bullish and bearish:
-        dissent.append("bullish and bearish assessments conflict")
+    elif strategy == "bullish" and skeptic == "bearish":
+        dissent.append("strategy and skeptic conflict: bullish thesis challenged")
         verdict = "WAIT"
-    elif len(bullish) >= 3:
+    elif strategy == "bearish" and skeptic == "bullish":
+        dissent.append("strategy and skeptic conflict: bearish thesis challenged")
+        verdict = "WAIT"
+    elif strategy == "bullish" and risk in {"neutral", "bullish"} and skeptic != "bearish":
         verdict = "BUY_CANDIDATE"
-    elif len(bearish) >= 3:
+    elif strategy == "bearish" and risk in {"neutral", "bearish"} and skeptic != "bullish":
         verdict = "SELL_CANDIDATE"
     else:
         verdict = "WAIT"
